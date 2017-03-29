@@ -18,7 +18,7 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     }
     
     func reset(){
-        // Do nothing, since we don't need to clear any cache here
+        return // Do nothing, since we don't need to clear any cache here
     }
     
     var output: Double{
