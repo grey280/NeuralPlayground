@@ -6,7 +6,8 @@ struct config{
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
-    var output: Double{ get }
+    var output: Double{ get } // The main useful value
+    func reset() // Clears any caching that the neuron is doing
 }
 
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
@@ -14,6 +15,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     
     init(withValue value: Double){
         amount = value
+    }
+    
+    func reset(){
+        // Do nothing, since we don't need to clear any cache here
     }
     
     var output: Double{
@@ -55,8 +60,21 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         return out
     }
     
+    var cachedOutput: Double?
+    
+    func reset(){
+        for neuron in inputs{ // Invalidate cache, bubble upwards
+            neuron.reset()
+        }
+        cachedOutput = nil
+    }
+    
     var output: Double{
-        return 1/(1+exp(-1.0 * sum()))
+        if cachedOutput != nil{
+            return cachedOutput!
+        }
+        cachedOutput = 1/(1+exp(-1.0 * sum()))
+        return cachedOutput!
     }
 }
 func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
