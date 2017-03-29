@@ -6,7 +6,8 @@ struct config{
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
-    var output: Double{ get }
+    var output: Double{ get } // The main useful value
+    func reset() // Clears any caching that the neuron is doing
 }
 
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
@@ -14,6 +15,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     
     init(withValue value: Double){
         amount = value
+    }
+    
+    func reset(){
+        return // Do nothing, since we don't need to clear any cache here
     }
     
     var output: Double{
@@ -55,8 +60,21 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         return out
     }
     
+    var cachedOutput: Double?
+    
+    func reset(){
+        for neuron in inputs{ // Invalidate cache, bubble upwards
+            neuron.reset()
+        }
+        cachedOutput = nil
+    }
+    
     var output: Double{
-        return 1/(1+exp(-1.0 * sum()))
+        if cachedOutput != nil{
+            return cachedOutput!
+        }
+        cachedOutput = 1/(1+exp(-1.0 * sum()))
+        return cachedOutput!
     }
 }
 func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
@@ -65,6 +83,12 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
 
 class Layer{
     var neurons = [Neuron]()
+    
+    func reset(){
+        for neuron in neurons{
+            neuron.reset()
+        }
+    }
     
     func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
         let sum = softMaxSum()
@@ -83,8 +107,16 @@ class Layer{
         return output
     }
 }
-class Network{
+class Network: CustomStringConvertible{
     var layers = [Layer]()
+    
+    func reset(){
+        layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
+    }
+    
+    var lastLayer: Layer{
+        return layers[layers.count - 1]
+    }
     
     func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
         let net = Network()
@@ -112,4 +144,14 @@ class Network{
         
         return net
     }
+    
+    public var description: String{
+        var out = "Network with \(layers.count) layers: "
+        for layer in layers{
+            out += "\(layer.neurons.count) "
+        }
+        return out
+    }
 }
+
+let net = Network().buildDefaultNetwork()
