@@ -11,15 +11,22 @@ protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also 
     var output: Double{ get }
 }
 
-class InputNeuron: Neuron{ // Constant value, used for feeding inputs to the network
+class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
+    
+    init(withValue value: Double){
+        amount = value
+    }
     
     var output: Double{
         return amount
     }
 }
+func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
+    return lhs.amount == rhs.amount
+}
 
-class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
+class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
     private var inputs = [Neuron]()
     private var weights = [Double]()
     var bias = 0.0
@@ -34,7 +41,7 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
             weights.append(weight)
         }
     }
-    func addInputs(_ inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
+    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
             weights.append(config.defaultWeight) // TODO: replace with randomizing
@@ -54,11 +61,14 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
         return 1/(1+exp(-1.0 * sum()))
     }
 }
+func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
+    return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
+}
 
 class Layer{
     var neurons = [Neuron]()
     
-    func softmax() -> [Double]{
+    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
         let sum = softMaxSum()
         var output = [Double]()
         for neuron in neurons{
@@ -67,7 +77,7 @@ class Layer{
         return output
     }
     
-    func softMaxSum() -> Double{
+    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
         var output = 0.0
         for neuron in neurons{
             output += exp(neuron.output)
@@ -77,4 +87,31 @@ class Layer{
 }
 class Network{
     var layers = [Layer]()
+    
+    func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
+        let net = Network()
+        let layer1 = Layer()
+        for _ in 0..<8{
+            layer1.neurons.append(InputNeuron(withValue: 0))
+        }
+        let layer2 = Layer()
+        for _ in 0..<8{
+            layer2.neurons.append(Sigmoid(fromLayer: layer1))
+        }
+        let layer3 = Layer()
+        for _ in 0..<4{
+            layer3.neurons.append(Sigmoid(fromLayer: layer2))
+        }
+        
+        let layer4 = Layer()
+        layer4.neurons.append(Sigmoid(fromLayer: layer3))
+        layer4.neurons.append(Sigmoid(fromLayer: layer3))
+        
+        net.layers.append(layer1)
+        net.layers.append(layer2)
+        net.layers.append(layer3)
+        net.layers.append(layer4)
+        
+        return net
+    }
 }
