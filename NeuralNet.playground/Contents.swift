@@ -139,7 +139,7 @@ class Network: CustomStringConvertible{
         for i in 0..<input.count{
             (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
         }
-        var out = [Double]
+        var out = [Double]()
         for neuron in lastLayer.neurons{
             out.append(neuron.output)
         }
@@ -174,5 +174,7 @@ class Network: CustomStringConvertible{
         return out
     }
 }
+
+//    Data structure? (input: [Double], output: [Double])
 
 let net = Network().buildDefaultNetwork()
