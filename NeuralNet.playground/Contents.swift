@@ -3,6 +3,8 @@ import PlaygroundSupport
 
 struct config{
     static let defaultWeight = 0.5
+    static let layerInfo = [8, 4, 2, 2]
+    static let defaultInput = 0.0
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
@@ -114,33 +116,33 @@ class Network: CustomStringConvertible{
         layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
     }
     
-    var lastLayer: Layer{
+    var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
         return layers[layers.count - 1]
     }
     
+//    func cost() -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
+//        
+//    }
+    
     func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
         let net = Network()
-        let layer1 = Layer()
-        for _ in 0..<8{
-            layer1.neurons.append(InputNeuron(withValue: 0))
-        }
-        let layer2 = Layer()
-        for _ in 0..<8{
-            layer2.neurons.append(Sigmoid(fromLayer: layer1))
-        }
-        let layer3 = Layer()
-        for _ in 0..<4{
-            layer3.neurons.append(Sigmoid(fromLayer: layer2))
-        }
         
-        let layer4 = Layer()
-        layer4.neurons.append(Sigmoid(fromLayer: layer3))
-        layer4.neurons.append(Sigmoid(fromLayer: layer3))
+        var didInputLayer = false
+        var previousLayer: Layer = Layer()
         
-        net.layers.append(layer1)
-        net.layers.append(layer2)
-        net.layers.append(layer3)
-        net.layers.append(layer4)
+        for ly in config.layerInfo{
+            let thisLayer = Layer()
+            for _ in 0..<ly{
+                if !didInputLayer{
+                    thisLayer.neurons.append(InputNeuron(withValue: config.defaultInput))
+                }else{
+                    thisLayer.neurons.append(Sigmoid(fromLayer: previousLayer))
+                }
+            }
+            didInputLayer = true
+            net.layers.append(thisLayer)
+            previousLayer = thisLayer
+        }
         
         return net
     }
