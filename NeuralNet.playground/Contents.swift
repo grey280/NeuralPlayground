@@ -84,6 +84,12 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
 class Layer{
     var neurons = [Neuron]()
     
+    func reset(){
+        for neuron in neurons{
+            neuron.reset()
+        }
+    }
+    
     func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
         let sum = softMaxSum()
         var output = [Double]()
@@ -103,6 +109,14 @@ class Layer{
 }
 class Network{
     var layers = [Layer]()
+    
+    func reset(){
+        layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
+    }
+    
+    var lastLayer: Layer{
+        return layers[layers.count - 1]
+    }
     
     func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
         let net = Network()
@@ -131,3 +145,6 @@ class Network{
         return net
     }
 }
+
+let net = Network().buildDefaultNetwork()
+print(net)
