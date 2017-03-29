@@ -129,11 +129,7 @@ class Network: CustomStringConvertible{
         return layers[0]
     }
     
-//    func cost() -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
-//        
-//    }
-    
-    func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input
+    private func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
         guard input.count == firstLayer.neurons.count else{
             throw NeuralNetError.InputMismatch
         }
@@ -142,6 +138,15 @@ class Network: CustomStringConvertible{
         }
         return lastLayer.softmax()
     }
+    
+    func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
+        
+        return (output: [[Double]](), cost: 1.0)
+    }
+    
+//    func cost() -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
+//
+//    }
     
     func buildDefaultNetwork() -> Network{
         let net = Network()
@@ -193,14 +198,10 @@ var trainingData = [(input: [Double], output: [Double])]()
 for i in 0..<256{
     trainingData.append(buildInput(UInt8(i)))
 }
-var testOut = [[Double]]()
-for dataPoint in trainingData{
-    do{
-        try testOut.append(net.evaluate(dataPoint.input))
-    } catch NeuralNetError.InputMismatch{
-        print("C'mon use the helper function, it's fool-resilient")
-    }
-    
+do{
+    let out = try net.evaluate(trainingData)
+    print(out.output)
+    print(out.cost)
+} catch NeuralNetError.InputMismatch{
+    print("C'mon use the helper function, it's fool-resilient")
 }
-
-print(testOut)
