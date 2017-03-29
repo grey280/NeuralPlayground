@@ -193,3 +193,18 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
 //    Data structure? (input: [Double], output: [Double])
 let net = Network().buildDefaultNetwork()
 
+var trainingData = [(input: [Double], output: [Double])]()
+for i in 0..<256{
+    trainingData.append(buildInput(UInt8(i)))
+}
+var testOut = [[Double]]()
+for dataPoint in trainingData{
+    do{
+        try testOut.append(net.evaluate(dataPoint.input))
+    } catch NeuralNetError.InputMismatch{
+        print("C'mon use the helper function, it's fool-resilient")
+    }
+    
+}
+
+print(testOut)
