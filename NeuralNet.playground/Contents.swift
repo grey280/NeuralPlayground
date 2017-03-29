@@ -11,7 +11,7 @@ protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also 
     var output: Double{ get }
 }
 
-class InputNeuron: Neuron{ // Constant value, used for feeding inputs to the network
+class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
     
     init(withValue value: Double){
@@ -22,8 +22,11 @@ class InputNeuron: Neuron{ // Constant value, used for feeding inputs to the net
         return amount
     }
 }
+func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
+    return lhs.amount == rhs.amount
+}
 
-class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
+class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
     private var inputs = [Neuron]()
     private var weights = [Double]()
     var bias = 0.0
@@ -57,6 +60,9 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
     var output: Double{
         return 1/(1+exp(-1.0 * sum()))
     }
+}
+func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
+    return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
 }
 
 class Layer{
