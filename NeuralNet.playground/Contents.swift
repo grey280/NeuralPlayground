@@ -16,6 +16,33 @@ protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also 
     func reset() // Clears any caching that the neuron is doing
 }
 
+class Layer{
+    var neurons = [Neuron]()
+    
+    func reset(){
+        for neuron in neurons{
+            neuron.reset()
+        }
+    }
+    
+    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
+        let sum = softMaxSum()
+        var output = [Double]()
+        for neuron in neurons{
+            output.append(exp(neuron.output)/sum)
+        }
+        return output
+    }
+    
+    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
+        var output = 0.0
+        for neuron in neurons{
+            output += exp(neuron.output)
+        }
+        return output
+    }
+}
+
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
     
@@ -87,32 +114,6 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
     return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
 }
 
-class Layer{
-    var neurons = [Neuron]()
-    
-    func reset(){
-        for neuron in neurons{
-            neuron.reset()
-        }
-    }
-    
-    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
-        let sum = softMaxSum()
-        var output = [Double]()
-        for neuron in neurons{
-            output.append(exp(neuron.output)/sum)
-        }
-        return output
-    }
-    
-    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
-        var output = 0.0
-        for neuron in neurons{
-            output += exp(neuron.output)
-        }
-        return output
-    }
-}
 class Network: CustomStringConvertible{
     var layers = [Layer]()
     
@@ -175,6 +176,20 @@ class Network: CustomStringConvertible{
     }
 }
 
-//    Data structure? (input: [Double], output: [Double])
+func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper to build a properly-shaped in/out pair
+    var input = [Double]()
+    let hold = Int(inp)
+    var output = [Double]()
+    if inp % 2 == 0{ // even number!
+        output = [0, 1]
+    } else {
+        output = [1, 0]
+    }
+    
+    input = [Double(hold/128 % 2), Double(hold/64 % 2), Double(hold/32 % 2), Double(hold/16 % 2), Double(hold/8 % 2), Double(hold/4 % 2), Double(hold/2 % 2), Double(hold % 2)]
+    return (input: input, output: output)
+}
 
+//    Data structure? (input: [Double], output: [Double])
 let net = Network().buildDefaultNetwork()
+
