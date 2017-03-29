@@ -2,9 +2,13 @@ import UIKit
 import PlaygroundSupport
 
 struct config{
-    static let defaultWeight = 0.5
-    static let layerInfo = [8, 4, 2, 2]
-    static let defaultInput = 0.0
+    static let defaultWeight = 0.5  // Default weight to use when building Sigmoids
+    static let layerInfo = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
+    static let defaultInput = 0.0 // Default input for the InputNeurons
+}
+
+enum NeuralNetError: Error{
+    case InputMismatch // Given input does not match the shape of the input layer
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
@@ -120,16 +124,32 @@ class Network: CustomStringConvertible{
         return layers[layers.count - 1]
     }
     
+    var firstLayer: Layer{ // Helper for accessing hte first layer; useful for feeding inputs, I suspect
+        return layers[0]
+    }
+    
 //    func cost() -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
 //        
 //    }
     
-    func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
+    func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input
+        guard input.count == firstLayer.neurons.count else{
+            throw NeuralNetError.InputMismatch
+        }
+        for i in 0..<input.count{
+            (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
+        }
+        var out = [Double]
+        for neuron in lastLayer.neurons{
+            out.append(neuron.output)
+        }
+        return out
+    }
+    
+    func buildDefaultNetwork() -> Network{
         let net = Network()
-        
         var didInputLayer = false
         var previousLayer: Layer = Layer()
-        
         for ly in config.layerInfo{
             let thisLayer = Layer()
             for _ in 0..<ly{
@@ -143,7 +163,6 @@ class Network: CustomStringConvertible{
             net.layers.append(thisLayer)
             previousLayer = thisLayer
         }
-        
         return net
     }
     
