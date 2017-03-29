@@ -3,11 +3,11 @@
 import UIKit
 import PlaygroundSupport
 
-protocol Neuron{
+protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get }
 }
 
-class Constant: Neuron{
+class InputNeuron: Neuron{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
     
     var output: Double{
@@ -32,7 +32,7 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
         }
     }
     
-    private func sum() -> Double{ // Sums everything up. Basically, \exp(-\sum_j w_j x_j-b)
+    fileprivate func sum() -> Double{ // Sums everything up. Basically, \exp(-\sum_j w_j x_j-b)
         var out = 0.0
         for (input, weight) in zip(inputs, weights){
             out += input.output*weight
@@ -46,8 +46,18 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
     }
 }
 
+class OutputNeuron: Sigmoid{ // TODO: properly implement softmax
+    override var output: Double{
+        let temp = 1/(1+exp(-1.0 * sum()))
+        if temp > 0.5 {
+            return 1
+        }
+        return 0
+    }
+}
+
 class Layer{
-    var neurons = [Sigmoid]()
+    var neurons = [Neuron]()
 }
 class Network{
     var layers = [Layer]()
