@@ -77,7 +77,7 @@ class Layer{
         return output
     }
     
-    private func softMaxSum() -> Double{
+    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
         var output = 0.0
         for neuron in neurons{
             output += exp(neuron.output)
@@ -88,7 +88,7 @@ class Layer{
 class Network{
     var layers = [Layer]()
     
-    func buildDefaultNetwork() -> Network{
+    func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
         let net = Network()
         let layer1 = Layer()
         for _ in 0..<8{
