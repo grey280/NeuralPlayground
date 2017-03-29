@@ -107,7 +107,7 @@ class Layer{
         return output
     }
 }
-class Network{
+class Network: CustomStringConvertible{
     var layers = [Layer]()
     
     func reset(){
@@ -144,7 +144,14 @@ class Network{
         
         return net
     }
+    
+    public var description: String{
+        var out = "Network with \(layers.count) layers: "
+        for layer in layers{
+            out += "\(layer.neurons.count) "
+        }
+        return out
+    }
 }
 
 let net = Network().buildDefaultNetwork()
-print(net)
