@@ -14,6 +14,10 @@ protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also 
 class InputNeuron: Neuron{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
     
+    init(withValue value: Double){
+        amount = value
+    }
+    
     var output: Double{
         return amount
     }
@@ -34,7 +38,7 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
             weights.append(weight)
         }
     }
-    func addInputs(_ inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
+    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
             weights.append(config.defaultWeight) // TODO: replace with randomizing
@@ -58,7 +62,7 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
 class Layer{
     var neurons = [Neuron]()
     
-    func softmax() -> [Double]{
+    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
         let sum = softMaxSum()
         var output = [Double]()
         for neuron in neurons{
@@ -67,7 +71,7 @@ class Layer{
         return output
     }
     
-    func softMaxSum() -> Double{
+    private func softMaxSum() -> Double{
         var output = 0.0
         for neuron in neurons{
             output += exp(neuron.output)
@@ -78,3 +82,28 @@ class Layer{
 class Network{
     var layers = [Layer]()
 }
+
+
+let net = Network()
+// random sizing for now, I guess
+let layer1 = Layer()
+for i in 0..<8{
+    layer1.neurons.append(InputNeuron(withValue: 0))
+}
+let layer2 = Layer()
+for i in 0..<8{
+    layer2.neurons.append(Sigmoid(fromLayer: layer1))
+}
+let layer3 = Layer()
+for i in 0..<4{
+    layer3.neurons.append(Sigmoid(fromLayer: layer2))
+}
+
+let layer4 = Layer()
+layer4.neurons.append(Sigmoid(fromLayer: layer3))
+layer4.neurons.append(Sigmoid(fromLayer: layer3))
+
+net.layers.append(layer1)
+net.layers.append(layer2)
+net.layers.append(layer3)
+net.layers.append(layer4)
