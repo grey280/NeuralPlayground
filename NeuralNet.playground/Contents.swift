@@ -55,18 +55,17 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
     }
 }
 
-class OutputNeuron: Sigmoid{ // TODO: properly implement softmax
-    override var output: Double{
-        let temp = 1/(1+exp(-1.0 * sum()))
-        if temp > 0.5 {
-            return 1
-        }
-        return 0
-    }
-}
-
 class Layer{
     var neurons = [Neuron]()
+    
+    func softmax() -> [Double]{
+        let sum = softMaxSum()
+        var output = [Double]()
+        for neuron in neurons{
+            output.append(exp(neuron.output)/sum)
+        }
+        return output
+    }
     
     func softMaxSum() -> Double{
         var output = 0.0
