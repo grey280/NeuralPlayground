@@ -2,12 +2,46 @@ import UIKit
 import PlaygroundSupport
 
 struct config{
-    static let defaultWeight = 0.5
+    static let defaultWeight = 0.5  // Default weight to use when building Sigmoids
+    static let layerInfo = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
+    static let defaultInput = 0.0 // Default input for the InputNeurons
+}
+
+enum NeuralNetError: Error{
+    case InputMismatch // Given input does not match the shape of the input layer
+    case NoDataSet // Attempted to call an analytic function without having given the network a dataset
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get } // The main useful value
     func reset() // Clears any caching that the neuron is doing
+}
+
+class Layer{
+    var neurons = [Neuron]()
+    
+    func reset(){
+        for neuron in neurons{
+            neuron.reset()
+        }
+    }
+    
+    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
+        let sum = softMaxSum()
+        var output = [Double]()
+        for neuron in neurons{
+            output.append(exp(neuron.output)/sum)
+        }
+        return output
+    }
+    
+    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
+        var output = 0.0
+        for neuron in neurons{
+            output += exp(neuron.output)
+        }
+        return output
+    }
 }
 
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
@@ -81,67 +115,80 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
     return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
 }
 
-class Layer{
-    var neurons = [Neuron]()
-    
-    func reset(){
-        for neuron in neurons{
-            neuron.reset()
-        }
-    }
-    
-    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
-        let sum = softMaxSum()
-        var output = [Double]()
-        for neuron in neurons{
-            output.append(exp(neuron.output)/sum)
-        }
-        return output
-    }
-    
-    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
-        var output = 0.0
-        for neuron in neurons{
-            output += exp(neuron.output)
-        }
-        return output
-    }
+func vectorDistance(x: Double, y: Double) -> Double{
+    return sqrt(x*x + y*y)
 }
+
 class Network: CustomStringConvertible{
     var layers = [Layer]()
+    private var lastEvalSet:[(input: [Double], output: [Double])]?
     
     func reset(){
         layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
     }
     
-    var lastLayer: Layer{
+    var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
         return layers[layers.count - 1]
     }
     
-    func buildDefaultNetwork() -> Network{ // Default net: 8 input nodes, a layer of 8, a layer of 4, a layer of 2, which we'll use as our softmax layer by calling .softMax() on that layer.
+    var firstLayer: Layer{ // Helper for accessing hte first layer; useful for feeding inputs, I suspect
+        return layers[0]
+    }
+    
+    private func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
+        guard input.count == firstLayer.neurons.count else{
+            throw NeuralNetError.InputMismatch
+        }
+        for i in 0..<input.count{
+            (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
+        }
+        return lastLayer.softmax()
+    }
+    
+    func cost() throws -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
+        guard let dataSet = lastEvalSet else{
+            throw NeuralNetError.NoDataSet
+        }
+        var sum = 0.0
+        for dataPoint in dataSet{
+            do{
+                let thisOut = try evaluate(dataPoint.input)
+                let distance = vectorDistance(x: thisOut[0], y: thisOut[1]) - vectorDistance(x: dataPoint.output[0], y: dataPoint.output[1])
+                sum += distance*distance
+            }
+        }
+        return sum / Double((2*dataSet.count))
+    }
+
+    
+    func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
+        lastEvalSet = input
+        var outs = [[Double]]()
+        do {
+            for (inVal, _) in input{
+                try outs.append(evaluate(inVal))
+            }
+            return (output: outs, cost: try cost())
+        }
+    }
+    
+    func buildDefaultNetwork() -> Network{
         let net = Network()
-        let layer1 = Layer()
-        for _ in 0..<8{
-            layer1.neurons.append(InputNeuron(withValue: 0))
+        var didInputLayer = false
+        var previousLayer: Layer = Layer()
+        for ly in config.layerInfo{
+            let thisLayer = Layer()
+            for _ in 0..<ly{
+                if !didInputLayer{
+                    thisLayer.neurons.append(InputNeuron(withValue: config.defaultInput))
+                }else{
+                    thisLayer.neurons.append(Sigmoid(fromLayer: previousLayer))
+                }
+            }
+            didInputLayer = true
+            net.layers.append(thisLayer)
+            previousLayer = thisLayer
         }
-        let layer2 = Layer()
-        for _ in 0..<8{
-            layer2.neurons.append(Sigmoid(fromLayer: layer1))
-        }
-        let layer3 = Layer()
-        for _ in 0..<4{
-            layer3.neurons.append(Sigmoid(fromLayer: layer2))
-        }
-        
-        let layer4 = Layer()
-        layer4.neurons.append(Sigmoid(fromLayer: layer3))
-        layer4.neurons.append(Sigmoid(fromLayer: layer3))
-        
-        net.layers.append(layer1)
-        net.layers.append(layer2)
-        net.layers.append(layer3)
-        net.layers.append(layer4)
-        
         return net
     }
     
@@ -154,4 +201,31 @@ class Network: CustomStringConvertible{
     }
 }
 
+func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper to build a properly-shaped in/out pair
+    var input = [Double]()
+    let hold = Int(inp)
+    var output = [Double]()
+    if inp % 2 == 0{ // even number!
+        output = [0, 1]
+    } else {
+        output = [1, 0]
+    }
+    
+    input = [Double(hold/128 % 2), Double(hold/64 % 2), Double(hold/32 % 2), Double(hold/16 % 2), Double(hold/8 % 2), Double(hold/4 % 2), Double(hold/2 % 2), Double(hold % 2)]
+    return (input: input, output: output)
+}
+
+//    Data structure? (input: [Double], output: [Double])
 let net = Network().buildDefaultNetwork()
+
+var trainingData = [(input: [Double], output: [Double])]()
+for i in 0..<256{
+    trainingData.append(buildInput(UInt8(i)))
+}
+do{
+    let out = try net.evaluate(trainingData)
+    print(out.output)
+    print(out.cost)
+} catch NeuralNetError.InputMismatch{
+    print("C'mon use the helper function, it's fool-resilient")
+}
