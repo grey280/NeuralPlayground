@@ -140,11 +140,7 @@ class Network: CustomStringConvertible{
         for i in 0..<input.count{
             (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
         }
-        var out = [Double]()
-        for neuron in lastLayer.neurons{
-            out.append(neuron.output)
-        }
-        return out
+        return lastLayer.softmax()
     }
     
     func buildDefaultNetwork() -> Network{
