@@ -3,6 +3,10 @@
 import UIKit
 import PlaygroundSupport
 
+struct config{
+    static let defaultWeight = 0.5
+}
+
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get }
 }
@@ -24,11 +28,16 @@ class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
         inputs.append(input)
         weights.append(weight)
     }
-    
     func addInputs(_ newInputs: [Neuron], weights newWeights: [Double]){ // Helper function
         for (input, weight) in zip(newInputs, newWeights){
             inputs.append(input)
             weights.append(weight)
+        }
+    }
+    func addInputs(_ inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
+        for neuron in inputLayer.neurons{
+            inputs.append(neuron)
+            weights.append(config.defaultWeight) // TODO: replace with randomizing
         }
     }
     
