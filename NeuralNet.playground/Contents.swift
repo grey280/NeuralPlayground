@@ -155,8 +155,6 @@ class Network: CustomStringConvertible{
                 let thisOut = try evaluate(dataPoint.input)
                 let distance = vectorDistance(x: thisOut[0], y: thisOut[1]) - vectorDistance(x: dataPoint.output[0], y: dataPoint.output[1])
                 sum += distance*distance
-            } catch{
-                throw error
             }
         }
         return sum / Double((2*dataSet.count))
@@ -165,8 +163,9 @@ class Network: CustomStringConvertible{
     
     func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
         lastEvalSet = input
-        
-        return (output: [[Double]](), cost: 1.0)
+        do{
+            return (output: [[Double]](), cost: try cost())
+        }
     }
     
     func buildDefaultNetwork() -> Network{
