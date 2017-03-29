@@ -9,6 +9,7 @@ struct config{
 
 enum NeuralNetError: Error{
     case InputMismatch // Given input does not match the shape of the input layer
+    case NoDataSet // Attempted to call an analytic function without having given the network a dataset
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
@@ -114,8 +115,13 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
     return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
 }
 
+func vectorDistance(x: Double, y: Double) -> Double{
+    return sqrt(x*x + y*y)
+}
+
 class Network: CustomStringConvertible{
     var layers = [Layer]()
+    private var lastEvalSet:[(input: [Double], output: [Double])]?
     
     func reset(){
         layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
@@ -139,14 +145,29 @@ class Network: CustomStringConvertible{
         return lastLayer.softmax()
     }
     
+    func cost() throws -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
+        guard let dataSet = lastEvalSet else{
+            throw NeuralNetError.NoDataSet
+        }
+        var sum = 0.0
+        for dataPoint in dataSet{
+            do{
+                let thisOut = try evaluate(dataPoint.input)
+                let distance = vectorDistance(x: thisOut[0], y: thisOut[1]) - vectorDistance(x: dataPoint.output[0], y: dataPoint.output[1])
+                sum += distance*distance
+            } catch{
+                throw error
+            }
+        }
+        return sum / Double((2*dataSet.count))
+    }
+
+    
     func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
+        lastEvalSet = input
         
         return (output: [[Double]](), cost: 1.0)
     }
-    
-//    func cost() -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
-//
-//    }
     
     func buildDefaultNetwork() -> Network{
         let net = Network()
