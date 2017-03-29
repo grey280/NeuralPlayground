@@ -107,3 +107,9 @@ net.layers.append(layer1)
 net.layers.append(layer2)
 net.layers.append(layer3)
 net.layers.append(layer4)
+
+print(layer4.softmax())
+for neuron in layer1.neurons as! [InputNeuron]{
+    neuron.amount = 1.0
+}
+print(layer4.softmax())
