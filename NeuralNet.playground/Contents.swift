@@ -3,7 +3,19 @@
 import UIKit
 import PlaygroundSupport
 
-class Sigmoid{ // We'll be using sigmoid neurons for the network
+protocol Neuron{
+    var output: Double{ get }
+}
+
+class Constant: Neuron{
+    var amount: Double = 0.0
+    
+    var output: Double{
+        return amount
+    }
+}
+
+class Sigmoid: Neuron{ // We'll be using sigmoid neurons for the network
     private var inputs = [Double]()
     private var weights = [Double]()
     var bias = 0.0
