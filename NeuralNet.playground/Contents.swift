@@ -81,35 +81,31 @@ class Layer{
 }
 class Network{
     var layers = [Layer]()
+    
+    func buildDefaultNetwork() -> Network{
+        let net = Network()
+        let layer1 = Layer()
+        for _ in 0..<8{
+            layer1.neurons.append(InputNeuron(withValue: 0))
+        }
+        let layer2 = Layer()
+        for _ in 0..<8{
+            layer2.neurons.append(Sigmoid(fromLayer: layer1))
+        }
+        let layer3 = Layer()
+        for _ in 0..<4{
+            layer3.neurons.append(Sigmoid(fromLayer: layer2))
+        }
+        
+        let layer4 = Layer()
+        layer4.neurons.append(Sigmoid(fromLayer: layer3))
+        layer4.neurons.append(Sigmoid(fromLayer: layer3))
+        
+        net.layers.append(layer1)
+        net.layers.append(layer2)
+        net.layers.append(layer3)
+        net.layers.append(layer4)
+        
+        return net
+    }
 }
-
-
-let net = Network()
-// random sizing for now, I guess
-let layer1 = Layer()
-for i in 0..<8{
-    layer1.neurons.append(InputNeuron(withValue: 0))
-}
-let layer2 = Layer()
-for i in 0..<8{
-    layer2.neurons.append(Sigmoid(fromLayer: layer1))
-}
-let layer3 = Layer()
-for i in 0..<4{
-    layer3.neurons.append(Sigmoid(fromLayer: layer2))
-}
-
-let layer4 = Layer()
-layer4.neurons.append(Sigmoid(fromLayer: layer3))
-layer4.neurons.append(Sigmoid(fromLayer: layer3))
-
-net.layers.append(layer1)
-net.layers.append(layer2)
-net.layers.append(layer3)
-net.layers.append(layer4)
-
-print(layer4.softmax())
-for neuron in layer1.neurons as! [InputNeuron]{
-    neuron.amount = 1.0
-}
-print(layer4.softmax())
