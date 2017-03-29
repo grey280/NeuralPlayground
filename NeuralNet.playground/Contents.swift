@@ -67,6 +67,14 @@ class OutputNeuron: Sigmoid{ // TODO: properly implement softmax
 
 class Layer{
     var neurons = [Neuron]()
+    
+    func softMaxSum() -> Double{
+        var output = 0.0
+        for neuron in neurons{
+            output += exp(neuron.output)
+        }
+        return output
+    }
 }
 class Network{
     var layers = [Layer]()
