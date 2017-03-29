@@ -163,8 +163,12 @@ class Network: CustomStringConvertible{
     
     func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
         lastEvalSet = input
-        do{
-            return (output: [[Double]](), cost: try cost())
+        var outs = [[Double]]()
+        do {
+            for (inVal, _) in input{
+                try outs.append(evaluate(inVal))
+            }
+            return (output: outs, cost: try cost())
         }
     }
     
