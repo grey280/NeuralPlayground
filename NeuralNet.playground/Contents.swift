@@ -2,10 +2,10 @@ import UIKit
 import PlaygroundSupport
 
 struct config{
-    static let defaultWeight = 0.5  // Default weight to use when building Sigmoids
-    static let layerInfo = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
-    static let defaultInput = 0.0 // Default input for the InputNeurons
-    static let defaultStepSize = 0.01 // Default step size for training
+    static let defaultWeight: Double = 0.5  // Default weight to use when building Sigmoids
+    static let layerInfo: [Int] = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
+    static let defaultInput: Double = 0.0 // Default input for the InputNeurons
+    static let defaultStepSize: Double = 1.0 // Default step size for training
 }
 
 enum NeuralNetError: Error{
@@ -275,10 +275,12 @@ do{
     let out = try net.evaluate(trainingData)
     print(out.output)
     print(out.cost)
-    net.train(trainingData)
+    try net.train(trainingData)
     let out2 = try net.evaluate(trainingData)
     print(out2.output)
     print(out2.cost)
 } catch NeuralNetError.InputMismatch{
     print("C'mon use the helper function, it's fool-resilient")
+} catch {
+    print("Something else went wrong, smart guy")
 }
