@@ -65,17 +65,14 @@ func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
 
 class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
     private var inputs = [Neuron]()
-    private var weights = [Double]()
-    var bias = 0.0
-    
-    func addInput(_ input: Neuron, weight: Double){ // Add a single input; makes sure we have the same number of inputs and weights, because otherwise... problems.
-        inputs.append(input)
-        weights.append(weight)
+    var weights = [Double](){
+        didSet{
+            reset()
+        }
     }
-    func addInputs(_ newInputs: [Neuron], weights newWeights: [Double]){ // Helper function
-        for (input, weight) in zip(newInputs, newWeights){
-            inputs.append(input)
-            weights.append(weight)
+    var bias = 0.0{
+        didSet{
+            reset()
         }
     }
     init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
@@ -131,7 +128,7 @@ class Network: CustomStringConvertible{
         return layers[layers.count - 1]
     }
     
-    var firstLayer: Layer{ // Helper for accessing hte first layer; useful for feeding inputs, I suspect
+    var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
         return layers[0]
     }
     
@@ -170,6 +167,13 @@ class Network: CustomStringConvertible{
             }
             return (output: outs, cost: try cost())
         }
+    }
+    
+    func train(_ input: [(input: [Double], output: [Double])]) throws{
+        // Train on a subset at a time, making it stochastic
+        // Gradient descent algorithm
+        // Change the biases of nodes, and the weights of their interconnections
+        //
     }
     
     func buildDefaultNetwork() -> Network{
@@ -215,7 +219,8 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
     return (input: input, output: output)
 }
 
-//    Data structure? (input: [Double], output: [Double])
+
+// Testing
 let net = Network().buildDefaultNetwork()
 
 var trainingData = [(input: [Double], output: [Double])]()
