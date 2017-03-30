@@ -2,7 +2,6 @@ import UIKit
 import PlaygroundSupport
 
 struct config{
-    static let defaultWeight: Double = 0.5  // Default weight to use when building Sigmoids
     static let layerInfo: [Int] = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
     static let defaultInput: Double = 0.0 // Default input for the InputNeurons
     static let defaultStepSize: Double = 1.0 // Default step size for training
@@ -79,7 +78,7 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
     init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
-            weights.append(config.defaultWeight) // TODO: replace with randomizing
+            weights.append(drand48())
         }
     }
     
