@@ -5,6 +5,7 @@ struct config{
     static let defaultWeight = 0.5  // Default weight to use when building Sigmoids
     static let layerInfo = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
     static let defaultInput = 0.0 // Default input for the InputNeurons
+    static let defaultStepSize = 0.01 // Default step size for training
 }
 
 enum NeuralNetError: Error{
@@ -173,7 +174,50 @@ class Network: CustomStringConvertible{
         // Train on a subset at a time, making it stochastic
         // Gradient descent algorithm
         // Change the biases of nodes, and the weights of their interconnections
-        //
+        var stepSize = config.defaultStepSize
+        
+        // Build subsets
+        var shuffledInput = input.sorted { (in1, in2) -> Bool in
+            return arc4random_uniform(2) == 0
+        }
+        var subsets = [[(input: [Double], output: [Double])]]()
+        for i in 0..<(shuffledInput.count/10){
+            var temp = [(input: [Double], output: [Double])]()
+            for j in 0..<10{
+                temp.append(shuffledInput[j*i])
+            }
+            subsets.append(temp)
+        }
+        
+        do{
+            for subset in subsets{
+                // Run the evaluation so I know how well it works
+                let currentRun = try evaluate(subset)
+                
+                // Calculate the derivative bit to use on a change
+                let multiplier = Double(stepSize)/Double(subset.count)
+                var sum = 0.0
+                for (theInput, theOutput) in zip(subset, currentRun.output){
+                    let distance = vectorDistance(x: theOutput[0]-theInput.output[0], y: theOutput[1]-theInput.output[1])
+                    sum += distance
+                }
+                let result = multiplier * sum
+                // Change weights and biases
+                for layer in layers{
+                    for neuron in layer.neurons{
+                        if let thisNeuron = neuron as? Sigmoid{
+                            thisNeuron.bias -= result
+                            thisNeuron.weights = thisNeuron.weights.map {
+                                $0 - result
+                            }
+                        }
+                    }
+                }
+                
+                // Update the step size; we'll shrink slowly, for now
+                stepSize *= 0.9
+            }
+        }
     }
     
     func buildDefaultNetwork() -> Network{
@@ -231,6 +275,10 @@ do{
     let out = try net.evaluate(trainingData)
     print(out.output)
     print(out.cost)
+    net.train(trainingData)
+    let out2 = try net.evaluate(trainingData)
+    print(out2.output)
+    print(out2.cost)
 } catch NeuralNetError.InputMismatch{
     print("C'mon use the helper function, it's fool-resilient")
 }
