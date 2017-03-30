@@ -150,7 +150,7 @@ class Network: CustomStringConvertible{
         for dataPoint in dataSet{
             do{
                 let thisOut = try evaluate(dataPoint.input)
-                let distance = vectorDistance(x: thisOut[0], y: thisOut[1]) - vectorDistance(x: dataPoint.output[0], y: dataPoint.output[1])
+                let distance = vectorDistance(x: thisOut[0]-dataPoint.output[0], y: thisOut[1]-dataPoint.output[1])
                 sum += distance*distance
             }
         }
