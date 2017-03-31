@@ -19,6 +19,7 @@ protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also 
     var output: Double{ get } // The main useful value
     var linkedNeurons: [Neuron] { get set }
     var error: Double { get set }
+    func setError(_ input: Double)
     func reset() // Clears any caching that the neuron is doing
     func sum() -> Double
     func addLinkedNeuron(_ input: Neuron)
@@ -51,12 +52,21 @@ class Layer{
         return output
     }
     
-    func errorCalc() -> [Double]{
+    func errorCalc() throws -> [Double]{
         var outs = [Double]()
-        // TODO: this is step 4 of the backpropagation algorithm, the backpropagation itself; implement it
-        outs.append(0.0) // purely to get the compiler to shut up
         
-        
+        for neuron in neurons{
+            var errorSum = 0.0
+            for linkedNeuron in neuron.linkedNeurons{
+                do{
+                    let thisError = try linkedNeuron.weightFor(neuron) * linkedNeuron.error
+                    errorSum += thisError
+                }
+            }
+            errorSum *= onionPrime(neuron.sum())
+            neuron.setError(errorSum)
+            outs.append(errorSum)
+        }
         
         return outs
     }
@@ -91,6 +101,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
         set {
             return // ignore attempts to set
         }
+    }
+    
+    func setError(_ input: Double) {
+        return // ignore error being set
     }
     
     var linkedNeurons = [Neuron]()
@@ -137,6 +151,9 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         }
     }
     var error = 0.0
+    func setError(_ input: Double) {
+        error = input
+    }
     init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, doing all the linkages and randomizing the weights
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
