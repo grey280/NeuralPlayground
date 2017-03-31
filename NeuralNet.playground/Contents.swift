@@ -4,9 +4,9 @@ import PlaygroundSupport
 struct config{
     static let layerInfo: [Int] = [8, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
     static let defaultInput: Double = 0.0 // Default input for the InputNeurons
-    static let defaultStepSize: Double = 0.2 // Default step size for training
-    static let stepSizeChange: Double = 0.875 // Multiplier by which to change the step size after every training iteration
-    static let trainingIterations: Int = 15 // Number of training iterations to run
+    static let defaultStepSize: Double = 0.1 // Default step size for training
+    static let stepSizeChange: Double = 0.95 // Multiplier by which to change the step size after every training iteration
+    static let trainingIterations: Int = 25 // Number of training iterations to run
 }
 
 enum NeuralNetError: Error{
@@ -345,7 +345,7 @@ class Network: CustomStringConvertible{
         }
     }
     
-    func buildDefaultNetwork() -> Network{
+    static func buildDefaultNetwork() -> Network{
         let net = Network()
         var didInputLayer = false
         var previousLayer: Layer = Layer()
@@ -391,6 +391,7 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
 
 // Testing
 
+/*
 let net = Network().buildDefaultNetwork()
 
 var trainingData = [(input: [Double], output: [Double])]()
@@ -433,4 +434,55 @@ do{
     try print(net.evaluate(test1.input))
     print("Testing 129")
     try print(net.evaluate(test2.input))
+} */
+
+let net = Network.buildDefaultNetwork()
+if let sigList = net.lastLayer.neurons as? [Sigmoid]{
+    for i in 0..<8{
+        sigList[0].weights[i] = 0
+        sigList[1].weights[i] = 0
+    }
+    sigList[0].weights[6] = -1.0
+    sigList[0].weights[7] = +1.0
+    sigList[1].weights[6] = +1.0
+    sigList[1].weights[7] = -1.0
+}
+
+var tests = [(test: [Double], original: Int)]()
+tests.append((test: buildInput(62).input, original: 62))
+tests.append((test: buildInput(63).input, original: 63))
+tests.append((test: buildInput(65).input, original: 65))
+do{
+    for test in tests{
+        print("Testing \(test.original)")
+        try print(net.evaluate(test.test))
+        net.lastLayer.neurons.forEach({ (neuron) in
+            print("  \(neuron.output)")
+        })
+    }
+    var trainingData = [(input: [Double], output: [Double])]()
+    for i in 0..<256{
+        trainingData.append(buildInput(UInt8(i)))
+    }
+    try net.train(trainingData)
+    for test in tests{
+        print("Testing \(test.original)")
+        try print(net.evaluate(test.test))
+        net.lastLayer.neurons.forEach({ (neuron) in
+            print("  \(neuron.output)")
+        })
+    }
+}
+
+
+
+for layer in net.layers{
+    print("Layer with \(layer.neurons.count) neurons: ")
+    for neuron in layer.neurons{
+        if let nSig = neuron as? Sigmoid{
+            print("  Sigmoid with \(nSig.bias) bias and \(nSig.weights) weights")
+        } else {
+            //            print("  Input neuron")
+        }
+    }
 }
