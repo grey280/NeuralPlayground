@@ -1,15 +1,15 @@
 import Foundation
 
 public class Layer{
-    var neurons = [Neuron]()
+    public var neurons = [Neuron]()
     
-    func reset(){
+    public func reset(){
         for neuron in neurons{
             neuron.reset()
         }
     }
     
-    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
+    public func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
         reset() // Since we softmax our output, this is a good place to reset everything so we don't have caching problems
         let sum = softMaxSum()
         var output = [Double]()
@@ -27,7 +27,7 @@ public class Layer{
         return output
     }
     
-    func errorCalc() throws -> [Double]{
+    public func errorCalc() throws -> [Double]{
         var outs = [Double]()
         
         for neuron in neurons{
@@ -68,7 +68,7 @@ public class Layer{
         return outputs
     }
     
-    func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{
+    public func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{
         var outs = [[Double]]()
         for input in inputs{
             outs.append(errorCalc(withInput: input))

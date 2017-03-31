@@ -14,22 +14,22 @@ func onionPrime(_ input: Double) -> Double{ // First derivative of the sigmoid f
 }
 
 open class Network: CustomStringConvertible{
-    var layers = [Layer]()
+    public var layers = [Layer]()
     private var lastEvalSet:[(input: [Double], output: [Double])]?
     
-    func reset(){
+    public func reset(){
         layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
     }
     
-    var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
+    public var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
         return layers[layers.count - 1]
     }
     
-    var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
+    public var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
         return layers[0]
     }
     
-    func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
+    public func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input
         guard input.count == firstLayer.neurons.count else{
             throw NeuralNetError.InputMismatch
         }
@@ -39,7 +39,7 @@ open class Network: CustomStringConvertible{
         return lastLayer.softmax()
     }
     
-    func cost() throws -> Double{ // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
+    public func cost() throws -> Double{ // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
         guard let dataSet = lastEvalSet else{
             throw NeuralNetError.NoDataSet
         }
@@ -57,7 +57,7 @@ open class Network: CustomStringConvertible{
     }
     
     
-    func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
+    public func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
         lastEvalSet = input
         var outs = [[Double]]()
         do {
@@ -68,7 +68,7 @@ open class Network: CustomStringConvertible{
         }
     }
     
-    func train(_ input: [(input: [Double], output: [Double])]) throws{
+    public func train(_ input: [(input: [Double], output: [Double])]) throws{
         // Train on a subset at a time, making it stochastic
         // Gradient descent algorithm
         // Change the biases of nodes, and the weights of their interconnections
@@ -157,50 +157,3 @@ open class Network: CustomStringConvertible{
     }
 }
 
-func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper to build a properly-shaped in/out pair
-    var input = [Double]()
-    let hold = Int(inp)
-    var output = [Double]()
-    if inp % 2 == 0{ // even number!
-        output = [0, 1]
-    } else {
-        output = [1, 0]
-    }
-    
-    input = [Double(hold/128 % 2), Double(hold/64 % 2), Double(hold/32 % 2), Double(hold/16 % 2), Double(hold/8 % 2), Double(hold/4 % 2), Double(hold/2 % 2), Double(hold % 2)]
-    return (input: input, output: output)
-}
-
-
-// MARK: Testing
-func testingCode(){ // Moving this into a function so I can call it as needed but have it out of the way
-    let net = Network.buildPredesignedNetwork()
-    
-    var tests = [(test: [Double], original: Int)]()
-    tests.append((test: buildInput(62).input, original: 62))
-    tests.append((test: buildInput(63).input, original: 63))
-    tests.append((test: buildInput(65).input, original: 65))
-    do{
-        for test in tests{
-            print("Testing \(test.original)")
-            try print(net.evaluate(test.test))
-            net.lastLayer.neurons.forEach({ (neuron) in
-                print("  \(neuron.output)")
-            })
-        }
-        var trainingData = [(input: [Double], output: [Double])]()
-        for i in 0..<256{
-            trainingData.append(buildInput(UInt8(i)))
-        }
-        try net.train(trainingData)
-        for test in tests{
-            print("Testing \(test.original)")
-            try print(net.evaluate(test.test))
-            net.lastLayer.neurons.forEach({ (neuron) in
-                print("  \(neuron.output)")
-            })
-        }
-    } catch {
-        print("Something threw an error in the testing function.")
-    }
-}
