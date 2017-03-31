@@ -4,9 +4,9 @@ import PlaygroundSupport
 struct config{
     static let layerInfo: [Int] = [8, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
     static let defaultInput: Double = 0.0 // Default input for the InputNeurons
-    static let defaultStepSize: Double = 0.5 // Default step size for training
-    static let stepSizeChange: Double = 0.9 // Multiplier by which to change the step size after every training iteration
-    static let trainingIterations: Int = 5 // Number of training iterations to run
+    static let defaultStepSize: Double = 0.25 // Default step size for training
+    static let stepSizeChange: Double = 0.8 // Multiplier by which to change the step size after every training iteration
+    static let trainingIterations: Int = 15 // Number of training iterations to run
 }
 
 enum NeuralNetError: Error{
@@ -37,6 +37,7 @@ class Layer{
     }
     
     func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
+        reset() // Since we softmax our output, this is a good place to reset everything so we don't have caching problems
         let sum = softMaxSum()
         var output = [Double]()
         for neuron in neurons{
@@ -200,12 +201,12 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
     }
     
     var output: Double{
-        return 1/(1+exp(-1.0 * sum()))
-//        if cachedOutput != nil{
-//            return cachedOutput!
-//        }
-//        cachedOutput = 1/(1+exp(-1.0 * sum()))
-//        return cachedOutput!
+//        return 1/(1+exp(-1.0 * sum()))
+        if cachedOutput != nil{
+            return cachedOutput!
+        }
+        cachedOutput = 1/(1+exp(-1.0 * sum()))
+        return cachedOutput!
     }
     
     func addLinkedNeuron(_ input: Neuron) { // should only ever be used by the initializer of something linking itself to this one
@@ -259,7 +260,7 @@ class Network: CustomStringConvertible{
         return layers[0]
     }
 
-    private func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
+    func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
         guard input.count == firstLayer.neurons.count else{
             throw NeuralNetError.InputMismatch
         }
@@ -267,14 +268,9 @@ class Network: CustomStringConvertible{
             (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
         }
         return lastLayer.softmax()
-//        var outs = [Double]()
-//        for neuron in lastLayer.neurons{
-//            outs.append(neuron.output)
-//        }
-//        return outs
     }
     
-    func cost() throws -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
+    func cost() throws -> Double{ // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
         guard let dataSet = lastEvalSet else{
             throw NeuralNetError.NoDataSet
         }
@@ -282,8 +278,10 @@ class Network: CustomStringConvertible{
         for dataPoint in dataSet{
             do{
                 let thisOut = try evaluate(dataPoint.input)
-                let distance = vectorDistance(x: thisOut[0]-dataPoint.output[0], y: thisOut[1]-dataPoint.output[1])
-                sum += distance*distance
+                let component1 = thisOut[0] - dataPoint.output[0]
+                let component2 = thisOut[1] - dataPoint.output[1]
+                let localSum = component1*component1 + component2*component2
+                sum += localSum
             }
         }
         return sum / Double((2*dataSet.count))
@@ -421,7 +419,18 @@ for layer in net.layers{
         if let nSig = neuron as? Sigmoid{
             print("  Sigmoid with \(nSig.bias) bias and \(nSig.weights) weights")
         } else {
-            print("  Input neuron")
+//            print("  Input neuron")
         }
     }
+}
+
+
+
+let test1 = buildInput(128)
+let test2 = buildInput(129)
+do{
+    print("Testing 128")
+    try print(net.evaluate(test1.input))
+    print("Testing 129")
+    try print(net.evaluate(test2.input))
 }
