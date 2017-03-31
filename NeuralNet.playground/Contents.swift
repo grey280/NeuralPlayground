@@ -2,10 +2,11 @@ import UIKit
 import PlaygroundSupport
 
 struct config{
-    static let layerInfo: [Int] = [8, 4, 2, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
+    static let layerInfo: [Int] = [8, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
     static let defaultInput: Double = 0.0 // Default input for the InputNeurons
-    static let defaultStepSize: Double = 1.0 // Default step size for training
-    static let trainingIterations: Int = 5
+    static let defaultStepSize: Double = 0.5 // Default step size for training
+    static let stepSizeChange: Double = 0.9 // Multiplier by which to change the step size after every training iteration
+    static let trainingIterations: Int = 5 // Number of training iterations to run
 }
 
 enum NeuralNetError: Error{
@@ -199,11 +200,12 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
     }
     
     var output: Double{
-        if cachedOutput != nil{
-            return cachedOutput!
-        }
-        cachedOutput = 1/(1+exp(-1.0 * sum()))
-        return cachedOutput!
+        return 1/(1+exp(-1.0 * sum()))
+//        if cachedOutput != nil{
+//            return cachedOutput!
+//        }
+//        cachedOutput = 1/(1+exp(-1.0 * sum()))
+//        return cachedOutput!
     }
     
     func addLinkedNeuron(_ input: Neuron) { // should only ever be used by the initializer of something linking itself to this one
@@ -265,6 +267,11 @@ class Network: CustomStringConvertible{
             (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
         }
         return lastLayer.softmax()
+//        var outs = [Double]()
+//        for neuron in lastLayer.neurons{
+//            outs.append(neuron.output)
+//        }
+//        return outs
     }
     
     func cost() throws -> Double{ // C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2.
@@ -335,7 +342,7 @@ class Network: CustomStringConvertible{
                     }
                 }
                 // Update the step size; we'll shrink slowly, for now
-                stepSize *= 0.9
+                stepSize *= config.stepSizeChange
             }
         }
     }
@@ -385,7 +392,7 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
 
 
 // Testing
-/*
+
 let net = Network().buildDefaultNetwork()
 
 var trainingData = [(input: [Double], output: [Double])]()
@@ -407,4 +414,14 @@ do{
 } catch {
     print("Something else went wrong, smart guy")
 }
- */
+
+for layer in net.layers{
+    print("Layer with \(layer.neurons.count) neurons: ")
+    for neuron in layer.neurons{
+        if let nSig = neuron as? Sigmoid{
+            print("  Sigmoid with \(nSig.bias) bias and \(nSig.weights) weights")
+        } else {
+            print("  Input neuron")
+        }
+    }
+}
