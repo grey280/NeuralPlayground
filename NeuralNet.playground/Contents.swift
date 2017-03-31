@@ -11,11 +11,13 @@ struct config{
 enum NeuralNetError: Error{
     case InputMismatch // Given input does not match the shape of the input layer
     case NoDataSet // Attempted to call an analytic function without having given the network a dataset
+    case NeuronMismatch // Attempted to call a function on a neuron that didn't have that type of function
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get } // The main useful value
     func reset() // Clears any caching that the neuron is doing
+    func sum() -> Double
 }
 
 class Layer{
@@ -43,6 +45,31 @@ class Layer{
         }
         return output
     }
+    
+    //    func errorCalc(onNeuron target: Neuron, withInput input: (input: [Double], output: [Double])) throws -> Double{
+    //        let firstBit = target.output - input.output
+    //        let secondBit = onionPrime(target.sum())
+    //        return firstBit * secondBit
+    //    }
+    
+    
+    
+    func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
+        let selfOut = softmax()
+//        var aLs = [Double]()
+        var secondBits = [Double]()
+        for neuron in self.neurons{
+//            aLs.append(neuron.output)
+            secondBits.append(onionPrime(neuron.sum()))
+        }
+        var outputs = [Double]()
+        for secondBit in secondBits{
+//            let firstBit = vectorDistance(x: aLs[0] - input.output[0], y: aLs[1] - input.output[1])
+            let firstBit = vectorDistance(x: selfOut[0] - input.output[0], y: selfOut[1] - input.output[1])
+            outputs.append(firstBit * secondBit)
+        }
+        return outputs
+    }
 }
 
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
@@ -54,6 +81,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     
     func reset(){
         return // Do nothing, since we don't need to clear any cache here
+    }
+    
+    func sum() -> Double{
+        return amount
     }
     
     var output: Double{
@@ -83,7 +114,7 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         }
     }
     
-    fileprivate func sum() -> Double{ // Sums everything up. Basically, \exp(-\sum_j w_j x_j-b)
+    func sum() -> Double{ // Sums everything up. Basically, \exp(-\sum_j w_j x_j-b)
         var out = 0.0
         for (input, weight) in zip(inputs, weights){
             out += input.output*weight
@@ -116,6 +147,11 @@ func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
 func vectorDistance(x: Double, y: Double) -> Double{
     return sqrt(x*x + y*y)
 }
+func onionPrime(_ input: Double) -> Double{ // First derivative of the sigmoid function, σ - or, as I refer to it, 'onion'
+    let eX = exp(input)
+    let bottom = pow(eX+1, 2)
+    return eX/bottom
+}
 
 class Network: CustomStringConvertible{
     var layers = [Layer]()
@@ -132,7 +168,7 @@ class Network: CustomStringConvertible{
     var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
         return layers[0]
     }
-    
+
     private func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
         guard input.count == firstLayer.neurons.count else{
             throw NeuralNetError.InputMismatch
@@ -265,6 +301,7 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
 
 
 // Testing
+/*
 let net = Network().buildDefaultNetwork()
 
 var trainingData = [(input: [Double], output: [Double])]()
@@ -286,3 +323,4 @@ do{
 } catch {
     print("Something else went wrong, smart guy")
 }
+ */
