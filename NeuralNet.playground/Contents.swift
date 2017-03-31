@@ -12,14 +12,17 @@ enum NeuralNetError: Error{
     case InputMismatch // Given input does not match the shape of the input layer
     case NoDataSet // Attempted to call an analytic function without having given the network a dataset
     case NeuronMismatch // Attempted to call a function on a neuron that didn't have that type of function
+    case InterlinkFailure // Attempted to find properties of a linked neuron when the neuron wasn't actually linked
 }
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get } // The main useful value
     var linkedNeurons: [Neuron] { get set }
+    var error: Double { get set }
     func reset() // Clears any caching that the neuron is doing
     func sum() -> Double
     func addLinkedNeuron(_ input: Neuron)
+    func weightFor(_ input: Neuron) throws -> Double
 }
 
 class Layer{
@@ -51,6 +54,8 @@ class Layer{
     func errorCalc() -> [Double]{
         var outs = [Double]()
         // TODO: this is step 4 of the backpropagation algorithm, the backpropagation itself; implement it
+        outs.append(0.0) // purely to get the compiler to shut up
+        
         
         
         return outs
@@ -67,12 +72,26 @@ class Layer{
             let firstBit = vectorDistance(x: selfOut[0] - input.output[0], y: selfOut[1] - input.output[1])
             outputs.append(firstBit * secondBit)
         }
+        
+        for i in 0..<self.neurons.count{ // store the error for later use
+            self.neurons[i].error = outputs[i]
+        }
+        
         return outputs
     }
 }
 
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
+    
+    var error: Double{
+        get{
+            return 0
+        }
+        set {
+            return // ignore attempts to set
+        }
+    }
     
     var linkedNeurons = [Neuron]()
     
@@ -95,6 +114,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     func addLinkedNeuron(_ input: Neuron){
         return // do nothing, since backpropagation doesn't matter to inputs
     }
+    
+    func weightFor(_ input: Neuron) -> Double {
+        return 0.0
+    }
 }
 func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
     return lhs.amount == rhs.amount
@@ -113,7 +136,8 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
             reset()
         }
     }
-    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
+    var error = 0.0
+    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, doing all the linkages and randomizing the weights
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
             neuron.addLinkedNeuron(self)
@@ -147,8 +171,26 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         return cachedOutput!
     }
     
-    func addLinkedNeuron(_ input: Neuron) {
+    func addLinkedNeuron(_ input: Neuron) { // should only ever be used by the initializer of something linking itself to this one
         linkedNeurons.append(input)
+    }
+    
+    func weightFor(_ input: Neuron) throws -> Double { // Swift doesn't have a way to make a protocol equatable that I can figure out, so I'm basically replacing array.index(of:) in here and it is *hell*
+        guard let inputSig = input as? Sigmoid else{
+            throw NeuralNetError.NeuronMismatch
+        }
+        var indO: Int?
+        for i in 0..<inputs.count{
+            if inputs[i] as! Sigmoid == inputSig{
+                indO = i
+                break
+            }
+        }
+        guard let ind = indO else{
+            throw NeuralNetError.InterlinkFailure
+        }
+        
+        return weights[ind]
     }
 }
 func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
