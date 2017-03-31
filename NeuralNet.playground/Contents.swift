@@ -48,25 +48,14 @@ class Layer{
         return output
     }
     
-    //    func errorCalc(onNeuron target: Neuron, withInput input: (input: [Double], output: [Double])) throws -> Double{
-    //        let firstBit = target.output - input.output
-    //        let secondBit = onionPrime(target.sum())
-    //        return firstBit * secondBit
-    //    }
-    
-    
-    
     func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
         let selfOut = softmax()
-//        var aLs = [Double]()
         var secondBits = [Double]()
         for neuron in self.neurons{
-//            aLs.append(neuron.output)
             secondBits.append(onionPrime(neuron.sum()))
         }
         var outputs = [Double]()
         for secondBit in secondBits{
-//            let firstBit = vectorDistance(x: aLs[0] - input.output[0], y: aLs[1] - input.output[1])
             let firstBit = vectorDistance(x: selfOut[0] - input.output[0], y: selfOut[1] - input.output[1])
             outputs.append(firstBit * secondBit)
         }
