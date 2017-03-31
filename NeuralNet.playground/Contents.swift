@@ -16,8 +16,10 @@ enum NeuralNetError: Error{
 
 protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
     var output: Double{ get } // The main useful value
+    var linkedNeurons: [Neuron] { get set }
     func reset() // Clears any caching that the neuron is doing
     func sum() -> Double
+    func addLinkedNeuron(_ input: Neuron)
 }
 
 class Layer{
@@ -75,6 +77,8 @@ class Layer{
 class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
     var amount: Double = 0.0
     
+    var linkedNeurons = [Neuron]()
+    
     init(withValue value: Double){
         amount = value
     }
@@ -90,6 +94,10 @@ class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs
     var output: Double{
         return amount
     }
+    
+    func addLinkedNeuron(_ input: Neuron){
+        return // do nothing, since backpropagation doesn't matter to inputs
+    }
 }
 func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
     return lhs.amount == rhs.amount
@@ -97,6 +105,7 @@ func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
 
 class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
     private var inputs = [Neuron]()
+    var linkedNeurons = [Neuron]()
     var weights = [Double](){
         didSet{
             reset()
@@ -110,6 +119,7 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
     init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, assigning default weight
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
+            neuron.addLinkedNeuron(self)
             weights.append(drand48())
         }
     }
@@ -138,6 +148,10 @@ class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the netw
         }
         cachedOutput = 1/(1+exp(-1.0 * sum()))
         return cachedOutput!
+    }
+    
+    func addLinkedNeuron(_ input: Neuron) {
+        linkedNeurons.append(input)
     }
 }
 func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
