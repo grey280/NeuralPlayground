@@ -364,6 +364,20 @@ class Network: CustomStringConvertible{
         }
         return net
     }
+    static func buildPredesignedNetwork() -> Network{ // Make a function of the predesigned one - it doesn't work perfectly, but it works well enough to demonstrate
+        let net = Network.buildDefaultNetwork()
+        if let sigList = net.lastLayer.neurons as? [Sigmoid]{
+            for i in 0..<8{
+                sigList[0].weights[i] = 0
+                sigList[1].weights[i] = 0
+            }
+            sigList[0].weights[6] = -1.0
+            sigList[0].weights[7] = +1.0
+            sigList[1].weights[6] = +1.0
+            sigList[1].weights[7] = -1.0
+        }
+        return net
+    }
     
     public var description: String{
         var out = "Network with \(layers.count) layers: "
@@ -371,6 +385,19 @@ class Network: CustomStringConvertible{
             out += "\(layer.neurons.count) "
         }
         return out
+    }
+}
+
+func printNetwork(_ net: Network){
+    for layer in net.layers{
+        print("Layer with \(layer.neurons.count) neurons: ")
+        for neuron in layer.neurons{
+            if let nSig = neuron as? Sigmoid{
+                print("  Sigmoid with \(nSig.bias) bias and weights \(nSig.weights)")
+            } else {
+                print("  Input neuron")
+            }
+        }
     }
 }
 
@@ -390,99 +417,34 @@ func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper 
 
 
 // Testing
+func testingCode(){ // Moving this into a function so I can call it as needed but have it out of the way
+    let net = Network.buildPredesignedNetwork()
 
-/*
-let net = Network().buildDefaultNetwork()
-
-var trainingData = [(input: [Double], output: [Double])]()
-for i in 0..<256{
-    trainingData.append(buildInput(UInt8(i)))
-}
-do{
-    let out = try net.evaluate(trainingData)
-    out.output
-    print(out.cost)
-    for i in 0..<config.trainingIterations{
+    var tests = [(test: [Double], original: Int)]()
+    tests.append((test: buildInput(62).input, original: 62))
+    tests.append((test: buildInput(63).input, original: 63))
+    tests.append((test: buildInput(65).input, original: 65))
+    do{
+        for test in tests{
+            print("Testing \(test.original)")
+            try print(net.evaluate(test.test))
+            net.lastLayer.neurons.forEach({ (neuron) in
+                print("  \(neuron.output)")
+            })
+        }
+        var trainingData = [(input: [Double], output: [Double])]()
+        for i in 0..<256{
+            trainingData.append(buildInput(UInt8(i)))
+        }
         try net.train(trainingData)
-        let out2 = try net.evaluate(trainingData)
-        out2.output
-        print(out2.cost)
-    }
-} catch NeuralNetError.InputMismatch{
-    print("C'mon use the helper function, it's fool-resilient")
-} catch {
-    print("Something else went wrong, smart guy")
-}
-
-for layer in net.layers{
-    print("Layer with \(layer.neurons.count) neurons: ")
-    for neuron in layer.neurons{
-        if let nSig = neuron as? Sigmoid{
-            print("  Sigmoid with \(nSig.bias) bias and \(nSig.weights) weights")
-        } else {
-//            print("  Input neuron")
+        for test in tests{
+            print("Testing \(test.original)")
+            try print(net.evaluate(test.test))
+            net.lastLayer.neurons.forEach({ (neuron) in
+                print("  \(neuron.output)")
+            })
         }
-    }
-}
-
-
-
-let test1 = buildInput(128)
-let test2 = buildInput(129)
-do{
-    print("Testing 128")
-    try print(net.evaluate(test1.input))
-    print("Testing 129")
-    try print(net.evaluate(test2.input))
-} */
-
-let net = Network.buildDefaultNetwork()
-if let sigList = net.lastLayer.neurons as? [Sigmoid]{
-    for i in 0..<8{
-        sigList[0].weights[i] = 0
-        sigList[1].weights[i] = 0
-    }
-    sigList[0].weights[6] = -1.0
-    sigList[0].weights[7] = +1.0
-    sigList[1].weights[6] = +1.0
-    sigList[1].weights[7] = -1.0
-}
-
-var tests = [(test: [Double], original: Int)]()
-tests.append((test: buildInput(62).input, original: 62))
-tests.append((test: buildInput(63).input, original: 63))
-tests.append((test: buildInput(65).input, original: 65))
-do{
-    for test in tests{
-        print("Testing \(test.original)")
-        try print(net.evaluate(test.test))
-        net.lastLayer.neurons.forEach({ (neuron) in
-            print("  \(neuron.output)")
-        })
-    }
-    var trainingData = [(input: [Double], output: [Double])]()
-    for i in 0..<256{
-        trainingData.append(buildInput(UInt8(i)))
-    }
-    try net.train(trainingData)
-    for test in tests{
-        print("Testing \(test.original)")
-        try print(net.evaluate(test.test))
-        net.lastLayer.neurons.forEach({ (neuron) in
-            print("  \(neuron.output)")
-        })
-    }
-}
-
-
-
-for layer in net.layers{
-    print("Layer with \(layer.neurons.count) neurons: ")
-    for neuron in layer.neurons{
-        if let nSig = neuron as? Sigmoid{
-            print("  Sigmoid with \(nSig.bias) bias and \(nSig.weights) weights")
-        } else {
-            //            print("  Input neuron")
-        }
+    } catch {
+        print("Something threw an error in the testing function.")
     }
 }
