@@ -71,7 +71,7 @@ class Layer{
         return outs
     }
     
-    func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
+    private func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
         let selfOut = softmax()
         var secondBits = [Double]()
         for neuron in self.neurons{
@@ -88,6 +88,24 @@ class Layer{
         }
         
         return outputs
+    }
+    
+    func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{
+        var outs = [[Double]]()
+        for input in inputs{
+            outs.append(errorCalc(withInput: input))
+        }
+        var output = [0.0, 0.0]
+        var outSums = [0.0, 0.0]
+        for out in outs{
+            outSums[0] += out[0]
+            outSums[1] += out[1]
+        }
+        output[0] = outSums[0] / Double(outs.count)
+        output[1] = outSums[1] / Double(outs.count)
+        neurons[0].error = output[0]
+        neurons[1].error = output[1]
+        return output
     }
 }
 
@@ -138,7 +156,7 @@ func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
 }
 
 class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
-    private var inputs = [Neuron]()
+    var inputs = [Neuron]()
     var linkedNeurons = [Neuron]()
     var weights = [Double](){
         didSet{
@@ -297,32 +315,25 @@ class Network: CustomStringConvertible{
         
         do{
             for subset in subsets{
-                // Run the evaluation so I know how well it works
-                let currentRun = try evaluate(subset)
+                // Calculate error
+                let _ = lastLayer.errorCalc(withInputs: subset) // Calculate the error on the final layer
+                for i in 0..<layers.count-1{ // Calculate the error on the rest of the layers
+                    try layers[(layers.count-2)-i].errorCalc() // -2: -1 so no overflow error, and -1 since we already did the last layer
+                }
                 
-                // Calculate the derivative bit to use on a change
-                // TODO: replace this with the new stochastic gradient descent stuff I've been working on
                 // remember, the new bias on a node is oldBias - (stepSize) * (error on that node)
                 // a new weight is oldWeight - (stepSize) * ((input along that weight, unchanged by the weight) * (error on the node))
-                let multiplier = Double(stepSize)/Double(subset.count)
-                var sum = 0.0
-                for (theInput, theOutput) in zip(subset, currentRun.output){
-                    let distance = vectorDistance(x: theOutput[0]-theInput.output[0], y: theOutput[1]-theInput.output[1])
-                    sum += distance
-                }
-                let result = multiplier * sum
-                // Change weights and biases
                 for layer in layers{
                     for neuron in layer.neurons{
                         if let thisNeuron = neuron as? Sigmoid{
-                            thisNeuron.bias -= result
-                            thisNeuron.weights = thisNeuron.weights.map {
-                                $0 - result
+                            thisNeuron.bias -= stepSize * thisNeuron.error
+                            for i in 0..<thisNeuron.weights.count{
+                                let inputAlongWeight = thisNeuron.inputs[i].output * thisNeuron.error
+                                thisNeuron.weights[i] -= stepSize * inputAlongWeight
                             }
                         }
                     }
                 }
-                
                 // Update the step size; we'll shrink slowly, for now
                 stepSize *= 0.9
             }
