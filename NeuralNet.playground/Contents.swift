@@ -48,6 +48,14 @@ class Layer{
         return output
     }
     
+    func errorCalc() -> [Double]{
+        var outs = [Double]()
+        // TODO: this is step 4 of the backpropagation algorithm, the backpropagation itself; implement it
+        
+        
+        return outs
+    }
+    
     func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
         let selfOut = softmax()
         var secondBits = [Double]()
@@ -234,6 +242,9 @@ class Network: CustomStringConvertible{
                 let currentRun = try evaluate(subset)
                 
                 // Calculate the derivative bit to use on a change
+                // TODO: replace this with the new stochastic gradient descent stuff I've been working on
+                // remember, the new bias on a node is oldBias - (stepSize) * (error on that node)
+                // a new weight is oldWeight - (stepSize) * ((input along that weight, unchanged by the weight) * (error on the node))
                 let multiplier = Double(stepSize)/Double(subset.count)
                 var sum = 0.0
                 for (theInput, theOutput) in zip(subset, currentRun.output){
