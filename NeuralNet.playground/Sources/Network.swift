@@ -155,5 +155,9 @@ open class Network: CustomStringConvertible{
         }
         return out
     }
+    
+    public init(){
+        // Nothing needs doing
+    }
 }
 

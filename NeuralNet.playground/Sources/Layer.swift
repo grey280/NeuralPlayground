@@ -1,7 +1,12 @@
 import Foundation
 
 public class Layer{
+    
     public var neurons = [Neuron]()
+    
+    public init(){
+        
+    }
     
     public func reset(){
         for neuron in neurons{
