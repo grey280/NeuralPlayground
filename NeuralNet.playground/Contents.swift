@@ -75,7 +75,19 @@ for i in 0..<256{
 }
 do{
     try network.train(trainingData)
-//: Let's try those tests again once it's done training.
+}catch{
+    // Uh oh, something went wrong! Check the NeuralNetError.
+}
+/*:
+ What just happened there? It probably took a little bit to run - training involves a whole lot of math.
+ 
+ Basically put, training involves feeding in an input and then comparing the result to the known answer. That error, or **cost**, is then used to figure out the error on every neuron in the network through something called **backpropagation**. Again, a whole lot of math, [explained here](http://neuralnetworksanddeeplearning.com/chap2.html) much more clearly than I'd be able to do.
+ 
+ Once we know the error on each neuron, we adjust the weights and the bias. The exact manner we do this is known as **stochastic gradient descent** or, more generally, **gradient descent**. (The "stochastic" there means "there's too much data to do it all at once, so we'll do it with a small chunk of the data set at a time.") We calculate the gradient of the error and then adjust things in the direction that reduces the error - the common example is setting a ball on the side of a valley and seeing where it stops in order to find the deepest point in the valley.
+ 
+ Now, let's see how well it worked:
+ */
+do{
     for test in tests{
         print("Testing network with input \(test.original)")
         let result = try network.evaluate(test.test)
@@ -88,5 +100,7 @@ do{
 /*:
  Hopefully that was a *touch* more accurate. It probably wasn't too much better, though - one iteration of training isn't all that much. Neural networks generally take quite a bit of training before they'll work well for what their intended use is.
  
- Of course, this is a *very* limited example - there's only 2^8 possible inputs, after all, and we started with a single hidden layer. Large scale neural networks can have billions of inputs requiring tens of thousands of input neurons and millions of neurons all working in concert. 
+ Of course, this is a *very* limited example - there's only 2^8 possible inputs, after all, and we started with a single hidden layer. Large scale neural networks can have billions of inputs requiring tens of thousands of input neurons and millions of neurons all working in concert.
+ 
+ The principles are the same, though: layers of neurons, passing values from one layer to the next, and learning from known data sets.
  */
