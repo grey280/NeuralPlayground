@@ -98,3 +98,8 @@ do{
  
  The principles are the same, though: layers of neurons, passing values from one layer to the next, and learning from known data sets.
  */
+/*:
+ Now, feel free to play around some with the networks - try training a few more times (you can reuse `trainingData` - in the real world, that can lead to problems as the network 'memorizes' the answers, but for this example it doesn't really matter) or even building your own network!
+*/
+
+let newNetwork = Network.buildPredesignedNetwork()
