@@ -26,4 +26,18 @@ public struct config{
         input = [Double(hold/128 % 2), Double(hold/64 % 2), Double(hold/32 % 2), Double(hold/16 % 2), Double(hold/8 % 2), Double(hold/4 % 2), Double(hold/2 % 2), Double(hold % 2)]
         return (input: input, output: output)
     }
+    
+    /**
+     Converts the output of the network into a more legible format.
+      - returns:
+    A tuple of the chance the number fed into the network was odd or even
+     - parameters:
+       - input: An output of a neural network
+     */
+    public static func parseOutput(_ input: [Double]) -> (chanceOdd: Double, chanceEven: Double){
+        guard input.count > 1 else{
+            return (chanceOdd: 0, chanceEven: 0)
+        }
+        return (chanceOdd: input[0]*100, chanceEven: input[1]*100)
+    }
 }

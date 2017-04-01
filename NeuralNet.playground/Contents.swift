@@ -1,5 +1,3 @@
-import UIKit
-import PlaygroundSupport
 /*:
  ## Neural Networks
  It seems like everybody is taking about artificial intelligence these days, and for good reason - it's impressive stuff. Actually understanding how it works, though, can be rather difficult.
@@ -54,10 +52,8 @@ Take a look at what comes back from `config.buildInput()`: `(input: [Double], ou
  */
 do{
     for test in tests{
-        print("Testing network with input \(test.original)")
         let result = try network.evaluate(test.test)
-        print("  Chance it's odd: \(result[0]), from sigmoid output \(network.lastLayer.neurons[0].output)")
-        print("  Chance it's even: \(result[1]), from sigmoid output \(network.lastLayer.neurons[1].output)")
+        config.parseOutput(result)
     }
 } catch {
     // Uh oh, something went wrong! Which kind of NeuralNetError was it?
@@ -89,10 +85,8 @@ do{
  */
 do{
     for test in tests{
-        print("Testing network with input \(test.original)")
         let result = try network.evaluate(test.test)
-        print("  Chance it's odd: \(result[0]), from sigmoid output \(network.lastLayer.neurons[0].output)")
-        print("  Chance it's even: \(result[1]), from sigmoid output \(network.lastLayer.neurons[1].output)")
+        config.parseOutput(result)
     }
 }catch{
     // Uh oh, something went wrong! Check the NeuralNetError.
