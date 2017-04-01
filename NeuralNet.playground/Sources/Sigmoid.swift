@@ -34,7 +34,7 @@ public class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for t
         return out
     }
     
-    var cachedOutput: Double?
+    var cachedOutput: Double? // Caching the output significantly reduces compute time
     
     public func reset(){
         for neuron in inputs{ // Invalidate cache, bubble upwards
@@ -43,8 +43,7 @@ public class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for t
         cachedOutput = nil
     }
     
-    public var output: Double{
-        //        return 1/(1+exp(-1.0 * sum()))
+    public var output: Double{ // Runs the sigmoid function
         if cachedOutput != nil{
             return cachedOutput!
         }
@@ -56,7 +55,7 @@ public class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for t
         linkedNeurons.append(input)
     }
     
-    public func weightFor(_ input: Neuron) throws -> Double { // Swift doesn't have a way to make a protocol equatable that I can figure out, so I'm basically replacing array.index(of:) in here and it is *hell*
+    public func weightFor(_ input: Neuron) throws -> Double { // Swift doesn't have a way to make a protocol equatable that I can figure out, so I'm basically replacing array.index(of:)
         guard let inputSig = input as? Sigmoid else{
             throw NeuralNetError.NeuronMismatch
         }
@@ -74,6 +73,6 @@ public class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for t
         return weights[ind]
     }
 }
-public func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
+public func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{ // Necessary for the weightFor(:) function.
     return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
 }

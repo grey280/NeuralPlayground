@@ -1,14 +1,13 @@
 import Foundation
 
-public class Layer{
-    
-    public var neurons = [Neuron]()
+public class Layer: CustomStringConvertible{
+    public var neurons = [Neuron]() // All the neurons in the layer.
     
     public init(){
-        
+        // We don't actually need an initializer, but the compiler kept complaining without one.
     }
     
-    public func reset(){
+    public func reset(){ // Clear the caches of every neuron in the layer.
         for neuron in neurons{
             neuron.reset()
         }
@@ -32,7 +31,7 @@ public class Layer{
         return output
     }
     
-    public func errorCalc() throws -> [Double]{
+    public func errorCalc() throws -> [Double]{ // Calculate the error of a hidden layer. Note - if errorCalc(withInput:) hasn't been called on the output layer, this won't work properly.
         var outs = [Double]()
         
         for neuron in neurons{
@@ -51,7 +50,7 @@ public class Layer{
         return outs
     }
     
-    private func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
+    private func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{ // Calculate the error on the output layer, for a single input - running this a bunch of times yields the result you want from errorCalc(withInputs:)
         let selfOut = softmax()
         var secondBits = [Double]()
         for neuron in self.neurons{
@@ -73,7 +72,7 @@ public class Layer{
         return outputs
     }
     
-    public func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{
+    public func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{ // Calculate the error on the output layer.
         var outs = [[Double]]()
         for input in inputs{
             outs.append(errorCalc(withInput: input))
@@ -89,5 +88,9 @@ public class Layer{
         neurons[0].error = output[0]
         neurons[1].error = output[1]
         return output
+    }
+    
+    public var description: String{
+        return "Layer with \(neurons.count) neurons."
     }
 }

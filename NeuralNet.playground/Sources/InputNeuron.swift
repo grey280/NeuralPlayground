@@ -5,7 +5,7 @@ public class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding
     
     public var error: Double{
         get{
-            return 0
+            return 0 // input neurons can't have error
         }
         set {
             return // ignore attempts to set
@@ -13,7 +13,7 @@ public class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding
     }
     
     public func setError(_ input: Double) {
-        return // ignore error being set
+        error = input // does nothing, of course
     }
     
     public var linkedNeurons = [Neuron]()
@@ -30,9 +30,8 @@ public class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding
     }
     
     public func sum() -> Double{
-        return amount
+        return amount // This one probably won't get called, actually, but if it is, the sum is the input since it's an input neuron
     }
-    
     public var output: Double{
         return amount
     }
@@ -42,7 +41,7 @@ public class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding
     }
     
     public func weightFor(_ input: Neuron) -> Double {
-        return 0.0
+        return 0.0 // Should never be called, since nothing comes before an input node
     }
 }
 public func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{

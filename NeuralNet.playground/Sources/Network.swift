@@ -14,18 +14,18 @@ func onionPrime(_ input: Double) -> Double{ // First derivative of the sigmoid f
 }
 
 open class Network: CustomStringConvertible{
-    public var layers = [Layer]()
-    private var lastEvalSet:[(input: [Double], output: [Double])]?
+    public var layers = [Layer]() // All the layers in the network
+    private var lastEvalSet:[(input: [Double], output: [Double])]? // Used to store the previous evaluation set, which we use for analytic functions
     
-    public func reset(){
+    public func reset(){ // Clear every cache in the network.
         layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
     }
     
-    public var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
+    public var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs
         return layers[layers.count - 1]
     }
     
-    public var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
+    public var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs
         return layers[0]
     }
     
@@ -39,7 +39,8 @@ open class Network: CustomStringConvertible{
         return lastLayer.softmax()
     }
     
-    public func cost() throws -> Double{ // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
+    public func cost() throws -> Double{ // Cost function - figures out how wrong the network is, basically.
+        // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
         guard let dataSet = lastEvalSet else{
             throw NeuralNetError.NoDataSet
         }
@@ -57,7 +58,7 @@ open class Network: CustomStringConvertible{
     }
     
     
-    public func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
+    public func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){ // Evaluate the network on a single input
         lastEvalSet = input
         var outs = [[Double]]()
         do {
@@ -72,7 +73,7 @@ open class Network: CustomStringConvertible{
         // Train on a subset at a time, making it stochastic
         // Gradient descent algorithm
         // Change the biases of nodes, and the weights of their interconnections
-        var stepSize = config.defaultStepSize
+        let stepSize = config.defaultStepSize
         
         // Build subsets
         var shuffledInput = input.sorted { (in1, in2) -> Bool in
@@ -108,13 +109,11 @@ open class Network: CustomStringConvertible{
                         }
                     }
                 }
-                // Update the step size; we'll shrink slowly, for now
-                stepSize *= config.stepSizeChange
             }
         }
     }
     
-    static func buildDefaultNetwork() -> Network{
+    static func buildDefaultNetwork() -> Network{ // Creates the default network with randomized weights
         let net = Network()
         var didInputLayer = false
         var previousLayer: Layer = Layer()
@@ -133,7 +132,7 @@ open class Network: CustomStringConvertible{
         }
         return net
     }
-    public static func buildPredesignedNetwork() -> Network{ // Make a function of the predesigned one - it doesn't work perfectly, but it works well enough to demonstrate
+    public static func buildPredesignedNetwork() -> Network{ // Creates the default network, with pre-set weights. Definitely not perfect, but also significantly better than the randomized default.
         let net = Network.buildDefaultNetwork()
         if let sigList = net.lastLayer.neurons as? [Sigmoid]{
             for i in 0..<8{

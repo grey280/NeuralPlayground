@@ -1,12 +1,12 @@
 /*:
  ## Neural Networks
- It seems like everybody is taking about artificial intelligence these days, and for good reason - it's impressive stuff. Actually understanding how it works, though, can be rather difficult.
+ It seems like everybody is taking about artificial intelligence and neural networks these days, and for good reason - they're impressive stuff. Actually understanding how it all works, though, can be rather difficult.
  
  Let's start by making a **network**.
  */
 let network = Network()
 /*:
- The structure of a neural network is based off that of the human brain; information goes in, gets passed from neuron to neuron, and comes out turned into different information. It's not a direct analogue, of course: the brain has many ways of passing information around, and it can move in any direction, whereas in most neural networks there's just one form of information passing, and it's usually in one direction - sequential.
+ The structure of a neural network is based off that of the human brain: information goes in, gets passed from neuron to neuron, and comes out turned into different information. It's not a direct analogue, of course: the brain has many ways of passing information around, and it can move in any direction, whereas in most neural networks there's just one form of information passing, and it's usually in one direction - sequential.
  
  For that sequential structure, we make a series of **layers** and fill them with **neurons**. (Don't worry about the term 'hidden layer' - that just means that it's not the input or the output layer.)
  */
