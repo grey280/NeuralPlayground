@@ -4,7 +4,16 @@ public struct config{
     static let defaultStepSize: Double = 0.1 // Default step size for training
     static let stepSizeChange: Double = 0.95 // Multiplier by which to change the step size after every training iteration
     static let trainingIterations: Int = 25 // Number of training iterations to run
-    public static func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper to build a properly-shaped in/out pair
+    
+    /**
+     Convert UInt8 to an input-output tuple of the format expected by the networks.
+     - returns:
+     A tuple of the formatted input-output pair for feeding into Network.evaluate
+     
+     - parameters:
+       - inp: The input number to be converted
+     */
+    public static func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){
         var input = [Double]()
         let hold = Int(inp)
         var output = [Double]()
