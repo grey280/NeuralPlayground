@@ -17,7 +17,7 @@ public class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for t
     public func setError(_ input: Double) {
         error = input
     }
-    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, doing all the linkages and randomizing the weights
+    public init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, doing all the linkages and randomizing the weights
         for neuron in inputLayer.neurons{
             inputs.append(neuron)
             neuron.addLinkedNeuron(self)

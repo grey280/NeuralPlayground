@@ -18,8 +18,11 @@ public class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding
     
     public var linkedNeurons = [Neuron]()
     
-    init(withValue value: Double){
+    public init(withValue value: Double){
         amount = value
+    }
+    public init(){
+        amount = config.defaultInput
     }
     
     public func reset(){
