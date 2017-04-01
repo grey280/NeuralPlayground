@@ -1,450 +1,105 @@
-import UIKit
-import PlaygroundSupport
-
-struct config{
-    static let layerInfo: [Int] = [8, 2] // Default layer structure; [Int], where each value is the number of neurons in the layer. First layer will be InputNeurons, the rest will be Sigmoids
-    static let defaultInput: Double = 0.0 // Default input for the InputNeurons
-    static let defaultStepSize: Double = 0.1 // Default step size for training
-    static let stepSizeChange: Double = 0.95 // Multiplier by which to change the step size after every training iteration
-    static let trainingIterations: Int = 25 // Number of training iterations to run
+/*:
+ ## Neural Networks
+ It seems like everybody is taking about artificial intelligence and neural networks these days, and for good reason - they're impressive stuff. Actually understanding how it all works, though, can be rather difficult.
+ 
+ Let's start by making a **network**.
+ */
+let network = Network()
+/*:
+ The structure of a neural network is based off that of the human brain: information goes in, gets passed from neuron to neuron, and comes out turned into different information. It's not a direct analogue, of course: the brain has many ways of passing information around, and it can move in any direction, whereas in most neural networks there's just one form of information passing, and it's usually in one direction - sequential.
+ 
+ For that sequential structure, we make a series of **layers** and fill them with **neurons**. (Don't worry about the term 'hidden layer' - that just means that it's not the input or the output layer.)
+ */
+let inputLayer = Layer()
+let hiddenLayer = Layer()
+let outputLayer = Layer()
+/*:
+ There's a couple different types of neurons that we're using here: Input neurons, and sigmoids. Input neurons do what it sounds like they do - they make it possible to put data into the network. Sigmoids do the heavy lifting of the neural network. Let's fill the layers we made earlier - we want 8 input neurons, and 2 sigmoids in the output layer, but in between can be as many layers with as many neurons as you'd like.
+ */
+for i in 0..<8{
+    let neuron = InputNeuron()
+    inputLayer.neurons.append(neuron)
 }
-
-enum NeuralNetError: Error{
-    case InputMismatch // Given input does not match the shape of the input layer
-    case NoDataSet // Attempted to call an analytic function without having given the network a dataset
-    case NeuronMismatch // Attempted to call a function on a neuron that didn't have that type of function
-    case InterlinkFailure // Attempted to find properties of a linked neuron when the neuron wasn't actually linked
+for i in 0..<4{
+    let neuron = Sigmoid(fromLayer: inputLayer)
+    hiddenLayer.neurons.append(neuron)
 }
-
-protocol Neuron{ // Having this allows constant vs. sigmoid neurons, while also making it possible to gracefully interlink the two.
-    var output: Double{ get } // The main useful value
-    var linkedNeurons: [Neuron] { get set }
-    var error: Double { get set }
-    func setError(_ input: Double)
-    func reset() // Clears any caching that the neuron is doing
-    func sum() -> Double
-    func addLinkedNeuron(_ input: Neuron)
-    func weightFor(_ input: Neuron) throws -> Double
+for i in 0..<2{
+    let neuron = Sigmoid(fromLayer: hiddenLayer)
+    outputLayer.neurons.append(neuron)
 }
-
-class Layer{
-    var neurons = [Neuron]()
-    
-    func reset(){
-        for neuron in neurons{
-            neuron.reset()
-        }
+/*:
+Note that each neuron is linked to the previous layer. This is how information is passed around: each neuron takes **input** from *every* neuron in the previous layer. As it takes that input, however, it adjusts it by a **weight**. Once it's collected all of those adjusted inputs, it'll combine them all together, adjust by a **bias**, and then output the result, which gets passed to every neuron in the next layer, repeating the whole process.
+ 
+The final step in assembling our network is to put all the layers into it:
+ */
+network.layers.append(inputLayer)
+network.layers.append(hiddenLayer)
+network.layers.append(outputLayer)
+/*:
+Now that we've got our network, let's put together some data to test it.
+ */
+var tests = [(test: [Double], original: Int)]()
+tests.append((test: config.buildInput(62).input, original: 62))
+tests.append((test: config.buildInput(63).input, original: 63))
+tests.append((test: config.buildInput(65).input, original: 65))
+/*:
+Take a look at what comes back from `config.buildInput()`: `(input: [Double], output: [Double])`. The input is an array of 8 doubles, either 1 or 0 - the binary representation of the original number, spread out to be easier to feed into the network. (This is why we made 8 input neurons.)
+ 
+ The output is an array of 2 doubles: the first is the chance that the number is an odd number, and the second is the chance that it's an even number. Why do it like this?
+ 
+ It's the same reason we had two neurons in the output layer, in fact. The output of a sigmoid neuron is... sorta useless on its own. It's an arbitrary number, and we don't know what it means. When we have multiple outputs, though, we can get more meaning by comparing them. To get the output of the network, we pass the output of the last layer through a **softmax** function: a fun little bit of math that converts the outputs into a percentage.
+ */
+do{
+    for test in tests{
+        let result = try network.evaluate(test.test)
+        config.parseOutput(result)
     }
-    
-    func softmax() -> [Double]{ // Gets softmax info for the entire layer at once
-        reset() // Since we softmax our output, this is a good place to reset everything so we don't have caching problems
-        let sum = softMaxSum()
-        var output = [Double]()
-        for neuron in neurons{
-            output.append(exp(neuron.output)/sum)
-        }
-        return output
-    }
-    
-    private func softMaxSum() -> Double{ // Sum up everything in order to get softmax per-neuron
-        var output = 0.0
-        for neuron in neurons{
-            output += exp(neuron.output)
-        }
-        return output
-    }
-    
-    func errorCalc() throws -> [Double]{
-        var outs = [Double]()
-        
-        for neuron in neurons{
-            var errorSum = 0.0
-            for linkedNeuron in neuron.linkedNeurons{
-                do{
-                    let thisError = try linkedNeuron.weightFor(neuron) * linkedNeuron.error
-                    errorSum += thisError
-                }
-            }
-            errorSum *= onionPrime(neuron.sum())
-            neuron.setError(errorSum)
-            outs.append(errorSum)
-        }
-        
-        return outs
-    }
-    
-    private func errorCalc(withInput input: (input: [Double], output: [Double])) -> [Double]{
-        let selfOut = softmax()
-        var secondBits = [Double]()
-        for neuron in self.neurons{
-            secondBits.append(onionPrime(neuron.sum()))
-        }
-        var outputs = [Double]()
-        for secondBit in secondBits{
-            let firstBit = vectorDistance(x: selfOut[0] - input.output[0], y: selfOut[1] - input.output[1])
-            outputs.append(firstBit * secondBit)
-        }
-        
-        for i in 0..<self.neurons.count{ // store the error for later use
-            self.neurons[i].error = outputs[i]
-        }
-        
-        return outputs
-    }
-    
-    func errorCalc(withInputs inputs: [(input: [Double], output: [Double])]) -> [Double]{
-        var outs = [[Double]]()
-        for input in inputs{
-            outs.append(errorCalc(withInput: input))
-        }
-        var output = [0.0, 0.0]
-        var outSums = [0.0, 0.0]
-        for out in outs{
-            outSums[0] += out[0]
-            outSums[1] += out[1]
-        }
-        output[0] = outSums[0] / Double(outs.count)
-        output[1] = outSums[1] / Double(outs.count)
-        neurons[0].error = output[0]
-        neurons[1].error = output[1]
-        return output
-    }
+} catch {
+    // Uh oh, something went wrong! Which kind of NeuralNetError was it?
 }
-
-class InputNeuron: Neuron, Equatable{ // Constant value, used for feeding inputs to the network
-    var amount: Double = 0.0
-    
-    var error: Double{
-        get{
-            return 0
-        }
-        set {
-            return // ignore attempts to set
-        }
-    }
-    
-    func setError(_ input: Double) {
-        return // ignore error being set
-    }
-    
-    var linkedNeurons = [Neuron]()
-    
-    init(withValue value: Double){
-        amount = value
-    }
-    
-    func reset(){
-        return // Do nothing, since we don't need to clear any cache here
-    }
-    
-    func sum() -> Double{
-        return amount
-    }
-    
-    var output: Double{
-        return amount
-    }
-    
-    func addLinkedNeuron(_ input: Neuron){
-        return // do nothing, since backpropagation doesn't matter to inputs
-    }
-    
-    func weightFor(_ input: Neuron) -> Double {
-        return 0.0
-    }
+/*:
+ Well, *that* wasn't very accurate. I can't say for certain how inaccurate it was, because every time we initialize the sigmoid neurons, their weights are randomized; if you were *very* lucky, maybe it was 100% accurate on all the tests!
+ 
+ That probably isn't the case, though, so what can we do about that?
+ 
+ Well, time for the big reason people use neural networks: machine learning. If we build a big data set that has both the inputs *and* the correct outputs, we can use it to **train** the network.
+ */
+var trainingData = [(input: [Double], output: [Double])]()
+for i in 0..<256{
+    trainingData.append(config.buildInput(UInt8(i)))
 }
-func ==(lhs: InputNeuron, rhs: InputNeuron) -> Bool{
-    return lhs.amount == rhs.amount
+do{
+    try network.train(trainingData)
+}catch{
+    // Uh oh, something went wrong! Check the NeuralNetError.
 }
-
-class Sigmoid: Neuron, Equatable{ // We'll be using sigmoid neurons for the network
-    var inputs = [Neuron]()
-    var linkedNeurons = [Neuron]()
-    var weights = [Double](){
-        didSet{
-            reset()
-        }
+/*:
+ What just happened there? It probably took a little bit to run - training involves a whole lot of math.
+ 
+ Basically put, training involves feeding in an input and then comparing the result to the known answer. That error, or **cost**, is then used to figure out the error on every neuron in the network through something called **backpropagation**. Again, a whole lot of math, [explained here](http://neuralnetworksanddeeplearning.com/chap2.html) much more clearly than I'd be able to do.
+ 
+ Once we know the error on each neuron, we adjust the weights and the bias. The exact manner we do this is known as **stochastic gradient descent** or, more generally, **gradient descent**. (The "stochastic" there means "there's too much data to do it all at once, so we'll do it with a small chunk of the data set at a time.") We calculate the gradient of the error and then adjust things in the direction that reduces the error - the common example is setting a ball on the side of a valley and seeing where it stops in order to find the deepest point in the valley.
+ 
+ Now, let's see how well it worked:
+ */
+do{
+    for test in tests{
+        let result = try network.evaluate(test.test)
+        config.parseOutput(result)
     }
-    var bias = 0.0{
-        didSet{
-            reset()
-        }
-    }
-    var error = 0.0
-    func setError(_ input: Double) {
-        error = input
-    }
-    init(fromLayer inputLayer: Layer){ // Feed in an entire layer at once, doing all the linkages and randomizing the weights
-        for neuron in inputLayer.neurons{
-            inputs.append(neuron)
-            neuron.addLinkedNeuron(self)
-            weights.append(drand48())
-        }
-    }
-    
-    func sum() -> Double{ // Sums everything up. Basically, \exp(-\sum_j w_j x_j-b)
-        var out = 0.0
-        for (input, weight) in zip(inputs, weights){
-            out += input.output*weight
-            out -= bias
-        }
-        return out
-    }
-    
-    var cachedOutput: Double?
-    
-    func reset(){
-        for neuron in inputs{ // Invalidate cache, bubble upwards
-            neuron.reset()
-        }
-        cachedOutput = nil
-    }
-    
-    var output: Double{
-//        return 1/(1+exp(-1.0 * sum()))
-        if cachedOutput != nil{
-            return cachedOutput!
-        }
-        cachedOutput = 1/(1+exp(-1.0 * sum()))
-        return cachedOutput!
-    }
-    
-    func addLinkedNeuron(_ input: Neuron) { // should only ever be used by the initializer of something linking itself to this one
-        linkedNeurons.append(input)
-    }
-    
-    func weightFor(_ input: Neuron) throws -> Double { // Swift doesn't have a way to make a protocol equatable that I can figure out, so I'm basically replacing array.index(of:) in here and it is *hell*
-        guard let inputSig = input as? Sigmoid else{
-            throw NeuralNetError.NeuronMismatch
-        }
-        var indO: Int?
-        for i in 0..<inputs.count{
-            if inputs[i] as! Sigmoid == inputSig{
-                indO = i
-                break
-            }
-        }
-        guard let ind = indO else{
-            throw NeuralNetError.InterlinkFailure
-        }
-        
-        return weights[ind]
-    }
+}catch{
+    // Uh oh, something went wrong! Check the NeuralNetError.
 }
-func ==(lhs: Sigmoid, rhs: Sigmoid) -> Bool{
-    return lhs.bias == rhs.bias && lhs.output == rhs.output && lhs.sum() == rhs.sum()
-}
+/*:
+ Hopefully that was a *touch* more accurate. It probably wasn't too much better, though - one iteration of training isn't all that much. Neural networks generally take quite a bit of training before they'll work well for what their intended use is.
+ 
+ Of course, this is a *very* limited example - there's only 2^8 possible inputs, after all, and we started with a single hidden layer. Large scale neural networks can have billions of inputs requiring tens of thousands of input neurons and millions of neurons all working in concert.
+ 
+ The principles are the same, though: layers of neurons, passing values from one layer to the next, and learning from known data sets.
+ */
+/*:
+ Now, feel free to play around some with the networks - try training a few more times (you can reuse `trainingData` - in the real world, that can lead to problems as the network 'memorizes' the answers, but for this example it doesn't really matter) or even building your own network!
+*/
 
-func vectorDistance(x: Double, y: Double) -> Double{
-    return sqrt(x*x + y*y)
-}
-func onionPrime(_ input: Double) -> Double{ // First derivative of the sigmoid function, σ - or, as I refer to it, 'onion'
-    let eX = exp(input)
-    let bottom = pow(eX+1, 2)
-    return eX/bottom
-}
-
-class Network: CustomStringConvertible{
-    var layers = [Layer]()
-    private var lastEvalSet:[(input: [Double], output: [Double])]?
-    
-    func reset(){
-        layers[layers.count - 1].reset() // since it bubbles up, don't need to reset each layer, only the last one
-    }
-    
-    var lastLayer: Layer{ // Helper for accessing the last layer; useful for getting outputs, I suspect
-        return layers[layers.count - 1]
-    }
-    
-    var firstLayer: Layer{ // Helper for accessing the first layer; useful for feeding inputs, I suspect
-        return layers[0]
-    }
-
-    func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input; for internal use only
-        guard input.count == firstLayer.neurons.count else{
-            throw NeuralNetError.InputMismatch
-        }
-        for i in 0..<input.count{
-            (firstLayer.neurons[i] as! InputNeuron).amount = input[i]
-        }
-        return lastLayer.softmax()
-    }
-    
-    func cost() throws -> Double{ // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
-        guard let dataSet = lastEvalSet else{
-            throw NeuralNetError.NoDataSet
-        }
-        var sum = 0.0
-        for dataPoint in dataSet{
-            do{
-                let thisOut = try evaluate(dataPoint.input)
-                let component1 = thisOut[0] - dataPoint.output[0]
-                let component2 = thisOut[1] - dataPoint.output[1]
-                let localSum = component1*component1 + component2*component2
-                sum += localSum
-            }
-        }
-        return sum / Double((2*dataSet.count))
-    }
-
-    
-    func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
-        lastEvalSet = input
-        var outs = [[Double]]()
-        do {
-            for (inVal, _) in input{
-                try outs.append(evaluate(inVal))
-            }
-            return (output: outs, cost: try cost())
-        }
-    }
-    
-    func train(_ input: [(input: [Double], output: [Double])]) throws{
-        // Train on a subset at a time, making it stochastic
-        // Gradient descent algorithm
-        // Change the biases of nodes, and the weights of their interconnections
-        var stepSize = config.defaultStepSize
-        
-        // Build subsets
-        var shuffledInput = input.sorted { (in1, in2) -> Bool in
-            return arc4random_uniform(2) == 0
-        }
-        var subsets = [[(input: [Double], output: [Double])]]()
-        for i in 0..<(shuffledInput.count/10){
-            var temp = [(input: [Double], output: [Double])]()
-            for j in 0..<10{
-                temp.append(shuffledInput[j*i])
-            }
-            subsets.append(temp)
-        }
-        
-        do{
-            for subset in subsets{
-                // Calculate error
-                let _ = lastLayer.errorCalc(withInputs: subset) // Calculate the error on the final layer
-                for i in 0..<layers.count-1{ // Calculate the error on the rest of the layers
-                    try layers[(layers.count-2)-i].errorCalc() // -2: -1 so no overflow error, and -1 since we already did the last layer
-                }
-                
-                // remember, the new bias on a node is oldBias - (stepSize) * (error on that node)
-                // a new weight is oldWeight - (stepSize) * ((input along that weight, unchanged by the weight) * (error on the node))
-                for layer in layers{
-                    for neuron in layer.neurons{
-                        if let thisNeuron = neuron as? Sigmoid{
-                            thisNeuron.bias -= stepSize * thisNeuron.error
-                            for i in 0..<thisNeuron.weights.count{
-                                let inputAlongWeight = thisNeuron.inputs[i].output * thisNeuron.error
-                                thisNeuron.weights[i] -= stepSize * inputAlongWeight
-                            }
-                        }
-                    }
-                }
-                // Update the step size; we'll shrink slowly, for now
-                stepSize *= config.stepSizeChange
-            }
-        }
-    }
-    
-    static func buildDefaultNetwork() -> Network{
-        let net = Network()
-        var didInputLayer = false
-        var previousLayer: Layer = Layer()
-        for ly in config.layerInfo{
-            let thisLayer = Layer()
-            for _ in 0..<ly{
-                if !didInputLayer{
-                    thisLayer.neurons.append(InputNeuron(withValue: config.defaultInput))
-                }else{
-                    thisLayer.neurons.append(Sigmoid(fromLayer: previousLayer))
-                }
-            }
-            didInputLayer = true
-            net.layers.append(thisLayer)
-            previousLayer = thisLayer
-        }
-        return net
-    }
-    static func buildPredesignedNetwork() -> Network{ // Make a function of the predesigned one - it doesn't work perfectly, but it works well enough to demonstrate
-        let net = Network.buildDefaultNetwork()
-        if let sigList = net.lastLayer.neurons as? [Sigmoid]{
-            for i in 0..<8{
-                sigList[0].weights[i] = 0
-                sigList[1].weights[i] = 0
-            }
-            sigList[0].weights[6] = -1.0
-            sigList[0].weights[7] = +1.0
-            sigList[1].weights[6] = +1.0
-            sigList[1].weights[7] = -1.0
-        }
-        return net
-    }
-    
-    public var description: String{
-        var out = "Network with \(layers.count) layers: "
-        for layer in layers{
-            out += "\(layer.neurons.count) "
-        }
-        return out
-    }
-}
-
-func printNetwork(_ net: Network){
-    for layer in net.layers{
-        print("Layer with \(layer.neurons.count) neurons: ")
-        for neuron in layer.neurons{
-            if let nSig = neuron as? Sigmoid{
-                print("  Sigmoid with \(nSig.bias) bias and weights \(nSig.weights)")
-            } else {
-                print("  Input neuron")
-            }
-        }
-    }
-}
-
-func buildInput(_ inp: UInt8) -> (input: [Double], output: [Double]){ // Helper to build a properly-shaped in/out pair
-    var input = [Double]()
-    let hold = Int(inp)
-    var output = [Double]()
-    if inp % 2 == 0{ // even number!
-        output = [0, 1]
-    } else {
-        output = [1, 0]
-    }
-    
-    input = [Double(hold/128 % 2), Double(hold/64 % 2), Double(hold/32 % 2), Double(hold/16 % 2), Double(hold/8 % 2), Double(hold/4 % 2), Double(hold/2 % 2), Double(hold % 2)]
-    return (input: input, output: output)
-}
-
-
-// Testing
-func testingCode(){ // Moving this into a function so I can call it as needed but have it out of the way
-    let net = Network.buildPredesignedNetwork()
-
-    var tests = [(test: [Double], original: Int)]()
-    tests.append((test: buildInput(62).input, original: 62))
-    tests.append((test: buildInput(63).input, original: 63))
-    tests.append((test: buildInput(65).input, original: 65))
-    do{
-        for test in tests{
-            print("Testing \(test.original)")
-            try print(net.evaluate(test.test))
-            net.lastLayer.neurons.forEach({ (neuron) in
-                print("  \(neuron.output)")
-            })
-        }
-        var trainingData = [(input: [Double], output: [Double])]()
-        for i in 0..<256{
-            trainingData.append(buildInput(UInt8(i)))
-        }
-        try net.train(trainingData)
-        for test in tests{
-            print("Testing \(test.original)")
-            try print(net.evaluate(test.test))
-            net.lastLayer.neurons.forEach({ (neuron) in
-                print("  \(neuron.output)")
-            })
-        }
-    } catch {
-        print("Something threw an error in the testing function.")
-    }
-}
+let newNetwork = Network.buildPredesignedNetwork()
