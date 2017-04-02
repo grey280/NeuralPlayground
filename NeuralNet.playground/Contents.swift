@@ -14,7 +14,7 @@ let inputLayer = Layer()
 let hiddenLayer = Layer()
 let outputLayer = Layer()
 /*:
- There's a couple different types of neurons that we're using here: Input neurons, and sigmoids. Input neurons do what it sounds like they do - they make it possible to put data into the network. Sigmoids do the heavy lifting of the neural network. Let's fill the layers we made earlier - we want 8 input neurons, and 2 sigmoids in the output layer, but in between can be as many layers with as many neurons as you'd like.
+ There are a couple different types of neurons that we're using here: input neurons, and sigmoids. Input neurons do what it sounds like they do - they make it possible to put data into the network. Sigmoids do the heavy lifting of the neural network. Let's fill the layers we made earlier - we want 8 input neurons, and 2 sigmoids in the output layer, but in between can be as many layers with as many neurons as you'd like.
  */
 for i in 0..<8{
     let neuron = InputNeuron()
@@ -92,14 +92,12 @@ do{
     // Uh oh, something went wrong! Check the NeuralNetError.
 }
 /*:
- Hopefully that was a *touch* more accurate. It probably wasn't too much better, though - one iteration of training isn't all that much. Neural networks generally take quite a bit of training before they'll work well for what their intended use is.
+ Hopefully that was a *touch* more accurate. It probably wasn't too much better, though - one iteration of training isn't all that much. Neural networks generally take quite a bit of training before they'll work well for their intended use.
  
  Of course, this is a *very* limited example - there's only 2^8 possible inputs, after all, and we started with a single hidden layer. Large scale neural networks can have billions of inputs requiring tens of thousands of input neurons and millions of neurons all working in concert.
  
  The principles are the same, though: layers of neurons, passing values from one layer to the next, and learning from known data sets.
- */
-/*:
- Now, feel free to play around some with the networks - try training a few more times (you can reuse `trainingData` - in the real world, that can lead to problems as the network 'memorizes' the answers, but for this example it doesn't really matter) or even building your own network!
-*/
 
+ Now, feel free to play around some with the networks (you can reuse `trainingData`) - try training a few more times or even building your own network!
+*/
 let newNetwork = Network.buildPredesignedNetwork()
