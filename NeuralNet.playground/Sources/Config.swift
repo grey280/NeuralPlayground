@@ -30,6 +30,7 @@ public struct config{
      Converts the output of the network into a more legible format.
       - returns:
     A tuple of the chance the number fed into the network was odd or even
+     
      - parameters:
        - input: An output of a neural network
      */

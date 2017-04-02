@@ -29,6 +29,14 @@ open class Network: CustomStringConvertible{
         return layers[0]
     }
     
+    /**
+    Evaluate the network on a single input
+    - returns:
+    The softmax'd output of the network
+    - parameters:
+        - input: A single input
+    - throws: An error of type `NeuralNetworkError`
+    */
     public func evaluate(_ input: [Double]) throws -> [Double]{ // Evaluate the network on a single input
         guard input.count == firstLayer.neurons.count else{
             throw NeuralNetError.InputMismatch
@@ -39,6 +47,11 @@ open class Network: CustomStringConvertible{
         return lastLayer.softmax()
     }
     
+    /**
+    Calculate the cost of the network on the last data set that was run
+    - returns: The cost of the network.
+    - throws: An error of type `NeuralNetworkError`
+    */
     public func cost() throws -> Double{ // Cost function - figures out how wrong the network is, basically.
         // C_{MST}(W,B,S^r,E^r)=0.5\sum_j(a^L_j-E^r_j)^2 \equiv \frac{1}{2n}\sum||y(x)-a||^2
         guard let dataSet = lastEvalSet else{
@@ -57,8 +70,16 @@ open class Network: CustomStringConvertible{
         return sum / Double((2*dataSet.count))
     }
     
-    
-    public func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){ // Evaluate the network on a single input
+    /**
+     Evaluate the network on a set of inputs
+     - returns:
+     A tuple of the output results and the cost across all the inputs
+     - parameters:
+        - input: An array of input-output tuples
+     
+     - throws: An error of type `NeuralNetworkError`
+     */
+    public func evaluate(_ input: [(input: [Double], output: [Double])]) throws -> (output: [[Double]], cost: Double){
         lastEvalSet = input
         var outs = [[Double]]()
         do {
@@ -69,6 +90,13 @@ open class Network: CustomStringConvertible{
         }
     }
     
+    /**
+    Train the network on a set of inputs.
+    - parameters:
+        - input: An array of input-output tuples
+    
+    - throws: An error of type `NeuralNetworkError`
+    */
     public func train(_ input: [(input: [Double], output: [Double])]) throws{
         // Train on a subset at a time, making it stochastic
         // Gradient descent algorithm
@@ -113,6 +141,11 @@ open class Network: CustomStringConvertible{
         }
     }
     
+    
+    /**
+    Creates the default network with randomized weights
+    - returns: A network with randomized weights
+    */
     static func buildDefaultNetwork() -> Network{ // Creates the default network with randomized weights
         let net = Network()
         var didInputLayer = false
@@ -132,6 +165,10 @@ open class Network: CustomStringConvertible{
         }
         return net
     }
+    /**
+    Creates the default network with predesigned weights.
+    - returns: A network with pre-configured weights
+    */
     public static func buildPredesignedNetwork() -> Network{ // Creates the default network, with pre-set weights. Definitely not perfect, but also significantly better than the randomized default.
         let net = Network.buildDefaultNetwork()
         if let sigList = net.lastLayer.neurons as? [Sigmoid]{
